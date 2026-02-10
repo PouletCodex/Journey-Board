@@ -212,12 +212,26 @@ function SortableTaskCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.7 : 1,
-    touchAction: "none",
     cursor: "grab",
+    userSelect: "none",     // ✅ empêche la sélection de texte
+    touchAction: "none",    // ✅ mobile
   };
 
+  // ❗ Empêche le drag quand on clique sur un élément "interactif"
+  function shouldBlockDrag(e: React.PointerEvent) {
+    const el = e.target as HTMLElement | null;
+    if (!el) return false;
+    return Boolean(el.closest("button, a, input, textarea, select, label, [data-no-dnd]"));
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    if (shouldBlockDrag(e)) return; // ✅ checkbox / boutons gardent leur comportement
+    e.preventDefault();            // ✅ empêche la sélection de texte
+    (listeners as any)?.onPointerDown?.(e);
+  }
+
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} onPointerDown={onPointerDown}>
       {children}
     </div>
   );

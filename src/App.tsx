@@ -205,19 +205,14 @@ function SortableTaskCard({
   id: string;
   children: React.ReactNode;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.6 : 1,
+    opacity: isDragging ? 0.7 : 1,
+    touchAction: "none",
     cursor: "grab",
   };
 
@@ -240,6 +235,12 @@ export default function JourneyTaskBoard() {
   const [formSection, setFormSection] = useState<Section>("Morning");
   const [formCategory, setFormCategory] = useState("");
   const [formComment, setFormComment] = useState("");
+
+  const sensors = useSensors(
+  useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+);
+
+
 
   // Load
   useEffect(() => {
@@ -552,103 +553,126 @@ export default function JourneyTaskBoard() {
                       No tasks here (with current filters).
                     </div>
                   ) : (
-                    list.map((t) => (
-                      <div
-                        key={t.id}
-                        style={{
-                          border: "1px solid rgba(0,0,0,0.10)",
-                          borderRadius: 16,
-                          padding: 12,
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 10,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                          <input
-                            type="checkbox"
-                            checked={t.done}
-                            onChange={() => toggleDone(t.id)}
-                            style={{ marginTop: 4 }}
-                          />
+                   <SortableContext items={list.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    {list.map((t) => (
+      <SortableTaskCard key={t.id} id={t.id}>
+        {/* IMPORTANT: mets ici exactement ta carte actuelle */}
+        <div
+          style={{
+            border: "1px solid rgba(0,0,0,0.10)",
+            borderRadius: 16,
+            padding: 12,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          {list.map((t) => (
+  <SortableTaskCard key={t.id} id={t.id}>
+    <div
+      style={{
+        border: "1px solid rgba(0,0,0,0.10)",
+        borderRadius: 16,
+        padding: 12,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <input
+          type="checkbox"
+          checked={t.done}
+          onChange={() => toggleDone(t.id)}
+          style={{ marginTop: 4 }}
+        />
 
-                          <div style={{ flex: 1 }}>
-                            <div
-                              style={{
-                                fontWeight: 800,
-                                textDecoration: t.done ? "line-through" : "none",
-                                opacity: t.done ? 0.65 : 1,
-                              }}
-                            >
-                              {t.title}
-                            </div>
+        <div style={{ flex: 1 }}>
+          <div
+            style={{
+              fontWeight: 800,
+              textDecoration: t.done ? "line-through" : "none",
+              opacity: t.done ? 0.65 : 1,
+            }}
+          >
+            {t.title}
+          </div>
 
-                            <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-                              {t.category ? (
-                                <span
-                                  style={{
-                                    fontSize: 12,
-                                    padding: "3px 8px",
-                                    borderRadius: 999,
-                                    border: "1px solid rgba(0,0,0,0.12)",
-                                    opacity: 0.85,
-                                  }}
-                                >
-                                  {t.category}
-                                </span>
-                              ) : null}
+          <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+            {t.category ? (
+              <span
+                style={{
+                  fontSize: 12,
+                  padding: "3px 8px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  opacity: 0.85,
+                }}
+              >
+                {t.category}
+              </span>
+            ) : null}
 
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                                {t.done ? <IconCheck /> : <IconX />}
-                                <span style={{ fontSize: 12, opacity: 0.75 }}>
-                                  {t.done ? "Completed" : "Not done"}
-                                </span>
-                              </span>
-                            </div>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {t.done ? <IconCheck /> : <IconX />}
+              <span style={{ fontSize: 12, opacity: 0.75 }}>
+                {t.done ? "Completed" : "Not done"}
+              </span>
+            </span>
+          </div>
 
-                            {t.comment ? (
-                              <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
-                                💬 {t.comment}
-                              </div>
-                            ) : (
-                              <div style={{ marginTop: 8, fontSize: 13, opacity: 0.5 }}>
-                                💬 No comment
-                              </div>
-                            )}
-                          </div>
+          {t.comment ? (
+            <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
+              💬 {t.comment}
+            </div>
+          ) : (
+            <div style={{ marginTop: 8, fontSize: 13, opacity: 0.5 }}>
+              💬 No comment
+            </div>
+          )}
+        </div>
 
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            <button
-                              onClick={() => openEdit(t)}
-                              style={{
-                                border: "1px solid rgba(0,0,0,0.12)",
-                                background: "white",
-                                borderRadius: 10,
-                                padding: "6px 10px",
-                                cursor: "pointer",
-                                fontWeight: 700,
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => removeTask(t.id)}
-                              style={{
-                                border: "1px solid rgba(255,0,0,0.25)",
-                                background: "white",
-                                borderRadius: 10,
-                                padding: "6px 10px",
-                                cursor: "pointer",
-                                fontWeight: 700,
-                                color: "rgb(220, 38, 38)",
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button
+            onClick={() => openEdit(t)}
+            style={{
+              border: "1px solid rgba(0,0,0,0.12)",
+              background: "white",
+              borderRadius: 10,
+              padding: "6px 10px",
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => removeTask(t.id)}
+            style={{
+              border: "1px solid rgba(255,0,0,0.25)",
+              background: "white",
+              borderRadius: 10,
+              padding: "6px 10px",
+              cursor: "pointer",
+              fontWeight: 700,
+              color: "rgb(220, 38, 38)",
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </SortableTaskCard>
+))}
+        </div>
+      </SortableTaskCard>
+      
+    ))}
+  </div>
+</SortableContext>
+
                   )}
                 </div>
               </div>
@@ -775,3 +799,5 @@ export default function JourneyTaskBoard() {
     </div>
   );
 }
+
+ 

@@ -813,7 +813,7 @@ function SectionDropZone({
                         ))}
                       </div>
                     </SortableContext>
-                  )}
+                  )
                 </div>
               );
             })}

@@ -440,8 +440,8 @@ export default function JourneyTaskBoard() {
     >
       <div
         style={{
-          maxWidth: 1100,
-          margin: "0 auto",
+          width: "100%",
+          padding: "0 24px",
           display: "flex",
           flexDirection: "column",
           gap: 14,

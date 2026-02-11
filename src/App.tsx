@@ -213,25 +213,29 @@ function SortableTaskCard({
     transition,
     opacity: isDragging ? 0.7 : 1,
     cursor: "grab",
-    userSelect: "none",     // ✅ empêche la sélection de texte
-    touchAction: "none",    // ✅ mobile
+    userSelect: "none",
+    WebkitUserSelect: "none",
+    touchAction: "none",
   };
 
-  // ❗ Empêche le drag quand on clique sur un élément "interactif"
-  function shouldBlockDrag(e: React.PointerEvent) {
-    const el = e.target as HTMLElement | null;
-    if (!el) return false;
-    return Boolean(el.closest("button, a, input, textarea, select, label, [data-no-dnd]"));
-  }
-
-  function onPointerDown(e: React.PointerEvent) {
-    if (shouldBlockDrag(e)) return; // ✅ checkbox / boutons gardent leur comportement
-    e.preventDefault();            // ✅ empêche la sélection de texte
-    (listeners as any)?.onPointerDown?.(e);
-  }
-
   return (
-    <div ref={setNodeRef} style={style} {...attributes} onPointerDown={onPointerDown}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onMouseDown={(e) => {
+        // ✅ empêche la sélection de texte au clic (desktop)
+        // (mais laisse dnd-kit gérer le drag)
+        const el = e.target as HTMLElement | null;
+        if (!el) return;
+
+        // si on clique sur un élément interactif, on ne bloque pas (checkbox/boutons)
+        if (el.closest("button, a, input, textarea, select, label")) return;
+
+        e.preventDefault();
+      }}
+    >
       {children}
     </div>
   );
@@ -598,6 +602,7 @@ export default function JourneyTaskBoard() {
         <input
           type="checkbox"
           checked={t.done}
+          onPointerDown={(e) => e.stopPropagation()}
           onChange={() => toggleDone(t.id)}
           style={{ marginTop: 4 }}
         />

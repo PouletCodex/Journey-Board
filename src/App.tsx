@@ -6,6 +6,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable, // ✅ AJOUTE ÇA
   type DragEndEvent,
 } from "@dnd-kit/core";
 

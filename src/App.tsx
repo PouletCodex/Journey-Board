@@ -425,7 +425,7 @@ export default function JourneyTaskBoard() {
         {/* Header */}
         <div
           style={{
-            background: "white",
+            background: "black",
             borderRadius: 18,
             padding: 16,
             boxShadow: "0 8px 22px rgba(0,0,0,0.06)",

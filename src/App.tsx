@@ -150,7 +150,8 @@ function Modal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.35)",
+        background: "linear-gradient(180deg,#0f1115 0%,#0a0c10 100%)",
+        color: "rgba(255, 255, 255, 0.14)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -567,7 +568,7 @@ export default function JourneyTaskBoard() {
                 <div
                   key={s}
                   style={{
-                    background: "black",
+                    background: "white",
                     borderRadius: 18,
                     padding: 12,
                     border: "1px solid rgba(0,0,0,0.06)",

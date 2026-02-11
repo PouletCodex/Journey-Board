@@ -165,7 +165,7 @@ function Modal({
       <div
         style={{
           width: "min(720px, 96vw)",
-          background: "black",
+          background: "white",
           borderRadius: 16,
           boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
           padding: 16,
@@ -185,7 +185,7 @@ function Modal({
             onClick={onClose}
             style={{
               border: "1px solid rgba(0,0,0,0.12)",
-              background: "black",
+              background: "white",
               borderRadius: 10,
               padding: "6px 10px",
               cursor: "pointer",

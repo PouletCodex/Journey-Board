@@ -185,7 +185,7 @@ function Modal({
             onClick={onClose}
             style={{
               border: "1px solid rgba(0,0,0,0.12)",
-              background: "white",
+              background: "black",
               borderRadius: 10,
               padding: "6px 10px",
               cursor: "pointer",

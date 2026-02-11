@@ -6,7 +6,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  useDroppable, // ✅ AJOUTE ÇA
   type DragEndEvent,
 } from "@dnd-kit/core";
 
@@ -243,31 +242,6 @@ export default function JourneyTaskBoard() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
-function SectionDropZone({
-  section,
-  children,
-}: {
-  section: Section;
-  children: React.ReactNode;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `section:${section}`,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        flex: 1,
-        borderRadius: 14,
-        padding: 4,
-        background: isOver ? "rgba(0,0,0,0.04)" : "transparent",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
   // Load
   useEffect(() => {
@@ -418,104 +392,40 @@ function SectionDropZone({
   }
 
   function onDragEnd(event: DragEndEvent) {
-  const { active, over } = event;
-  if (!over) return;
+    const { active, over } = event;
+    if (!over) return;
+    if (active.id === over.id) return;
 
-  const activeId = String(active.id);
-  const overId = String(over.id);
+    const activeId = String(active.id);
+    const overId = String(over.id);
 
-  const activeTask = tasks.find((t) => t.id === activeId);
-  if (!activeTask) return;
-
-  // ✅ destination section
-  let destSection: Section | null = null;
-  let destIndex: number | null = null;
-
-  // Case 1: dropped on a SECTION (empty space)
-  if (overId.startsWith("section:")) {
-    destSection = overId.replace("section:", "") as Section;
-    destIndex = null; // append
-  } else {
-    // Case 2: dropped on another TASK
+    const activeTask = tasks.find((t) => t.id === activeId);
     const overTask = tasks.find((t) => t.id === overId);
-    if (!overTask) return;
-    destSection = overTask.section;
+    if (!activeTask || !overTask) return;
 
-    const destList = tasks
-      .filter((t) => t.section === destSection)
+    // simple: réordonne seulement dans la même section
+    if (activeTask.section !== overTask.section) return;
+
+    const section = activeTask.section;
+
+    const sectionTasks = tasks
+      .filter((t) => t.section === section)
       .sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
 
-    destIndex = destList.findIndex((t) => t.id === overId);
-  }
+    const oldIndex = sectionTasks.findIndex((t) => t.id === activeId);
+    const newIndex = sectionTasks.findIndex((t) => t.id === overId);
+    if (oldIndex === -1 || newIndex === -1) return;
 
-  if (!destSection) return;
-
-  const sourceSection = activeTask.section;
-
-  // Build source & dest lists (sorted)
-  const sourceList = tasks
-    .filter((t) => t.section === sourceSection)
-    .sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
-
-  let destList = tasks
-    .filter((t) => t.section === destSection)
-    .sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
-
-  // Remove active from its current list
-  const sourceWithout = sourceList.filter((t) => t.id !== activeId);
-
-  // If moving within same section: reorder like before
-  if (sourceSection === destSection) {
-    const oldIndex = sourceList.findIndex((t) => t.id === activeId);
-    const newIndex =
-      destIndex === null ? sourceWithout.length : Math.max(0, destIndex);
-
-    const moved = arrayMove(sourceList, oldIndex, newIndex);
-
+    const moved = arrayMove(sectionTasks, oldIndex, newIndex);
     const orderMap = new Map<string, number>();
-    moved.forEach((t, i) => orderMap.set(t.id, i));
+    moved.forEach((t, idx) => orderMap.set(t.id, idx));
 
     setTasks((prev) =>
       prev.map((t) =>
-        t.section === sourceSection ? { ...t, order: orderMap.get(t.id) ?? 0 } : t
+        t.section === section ? { ...t, order: orderMap.get(t.id) ?? 0 } : t
       )
     );
-    return;
   }
-
-  // Moving to another section:
-  // Remove active from destList if it somehow exists there (safety)
-  destList = destList.filter((t) => t.id !== activeId);
-
-  const insertAt = destIndex === null ? destList.length : Math.max(0, destIndex);
-  const movedTask: Task = { ...activeTask, section: destSection };
-
- const newDestList: Task[] = [
-  ...destList.slice(0, insertAt),
-  movedTask,
-  ...destList.slice(insertAt),
-];
-
-  // Recompute order for BOTH sections
-  const orderMap = new Map<string, number>();
-  sourceWithout.forEach((t, i) => orderMap.set(t.id, i));
-  newDestList.forEach((t, i) => orderMap.set(t.id, i));
-
-  setTasks((prev) =>
-    prev.map((t) => {
-      if (t.id === activeId) {
-        return { ...movedTask, order: orderMap.get(activeId) ?? 0 };
-      }
-      if (t.section === sourceSection) {
-        return { ...t, order: orderMap.get(t.id) ?? 0 };
-      }
-      if (t.section === destSection) {
-        return { ...t, order: orderMap.get(t.id) ?? 0 };
-      }
-      return t;
-    })
-  );
-}
 
   return (
     <div
@@ -685,27 +595,10 @@ function SectionDropZone({
                     <div style={{ fontSize: 18, fontWeight: 900 }}>{st.pct}%</div>
                   </div>
 
-                 <SectionDropZone section={s}>
-  {list.length === 0 ? (
-    <div style={{ fontSize: 13, opacity: 0.6, padding: 10 }}>
-      Drop a task here
-    </div>
-  ) : (
-    <SortableContext
-      items={list.map((t) => t.id)}
-      strategy={verticalListSortingStrategy}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {list.map((t) => (
-          <SortableTaskCard key={t.id} id={t.id}>
-            {/* ta carte inchangée */}
-            ...
-          </SortableTaskCard>
-        ))}
-      </div>
-    </SortableContext>
-  )}
-</SectionDropZone>
+                  {list.length === 0 ? (
+                    <div style={{ fontSize: 13, opacity: 0.6, padding: 10 }}>
+                      No tasks here (with current filters).
+                    </div>
                   ) : (
                     <SortableContext
                       items={list.map((t) => t.id)}
@@ -813,7 +706,7 @@ function SectionDropZone({
                         ))}
                       </div>
                     </SortableContext>
-                  )
+                  )}
                 </div>
               );
             })}

@@ -490,11 +490,11 @@ function SectionDropZone({
   const insertAt = destIndex === null ? destList.length : Math.max(0, destIndex);
   const movedTask: Task = { ...activeTask, section: destSection };
 
-  const newDestList = [
-    ...destList.slice(0, insertAt),
-    movedTask,
-    ...destList.slice(insertAt),
-  ];
+ const newDestList: Task[] = [
+  ...destList.slice(0, insertAt),
+  movedTask,
+  ...destList.slice(insertAt),
+];
 
   // Recompute order for BOTH sections
   const orderMap = new Map<string, number>();

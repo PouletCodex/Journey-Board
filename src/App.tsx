@@ -568,7 +568,7 @@ export default function JourneyTaskBoard() {
                 <div
                   key={s}
                   style={{
-                    background: "white",
+                    background: "black",
                     borderRadius: 18,
                     padding: 12,
                     border: "1px solid rgba(0,0,0,0.06)",

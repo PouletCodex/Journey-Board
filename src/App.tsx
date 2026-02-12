@@ -435,7 +435,7 @@ export default function JourneyTaskBoard() {
         fontFamily:
           'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial',
         color: "rgba(0,0,0,0.88)",
-        background: "rgba(107, 100, 100, 0.24)",
+        background: "rgba(145, 116, 117, 0.24)",
         minHeight: "100vh",
       }}
     >

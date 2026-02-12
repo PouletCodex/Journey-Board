@@ -791,7 +791,7 @@ export default function JourneyTaskBoard() {
                 onClick={closeModal}
                 style={{
                   border: "1px solid rgba(0,0,0,0.12)",
-                  background: "white",
+                  background: "black",
                   borderRadius: 12,
                   padding: "10px 12px",
                   cursor: "pointer",

@@ -165,7 +165,7 @@ function Modal({
       <div
         style={{
           width: "min(720px, 96vw)",
-          background: "black",
+          background: "white",
           borderRadius: 16,
           boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
           padding: 16,

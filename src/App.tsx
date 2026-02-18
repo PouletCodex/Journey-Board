@@ -249,6 +249,13 @@ export default function JourneyTaskBoard() {
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<"board" | "summary" | "settings">("board");
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
+  const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>({
+    Morning: "Morning",
+    Midday: "Midday",
+    AfterWork: "After Work",
+  });
+  const [editingSection, setEditingSection] = useState<Section | null>(null);
+  const [editingSectionTitle, setEditingSectionTitle] = useState("");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -269,6 +276,24 @@ export default function JourneyTaskBoard() {
       if (raw) {
         const parsed = JSON.parse(raw) as Task[];
         if (Array.isArray(parsed)) setTasks(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("journey_section_titles");
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Record<Section, string>>;
+        if (parsed) {
+          setSectionTitles((prev) => ({
+            Morning: parsed.Morning ?? prev.Morning,
+            Midday: parsed.Midday ?? prev.Midday,
+            AfterWork: parsed.AfterWork ?? prev.AfterWork,
+          }));
+        }
       }
     } catch {
       // ignore
@@ -300,6 +325,14 @@ export default function JourneyTaskBoard() {
       // ignore
     }
   }, [themeMode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_section_titles", JSON.stringify(sectionTitles));
+    } catch {
+      // ignore
+    }
+  }, [sectionTitles]);
   const danger = useMemo(() => {
     if (themeMode === "light") {
       return {
@@ -583,6 +616,19 @@ export default function JourneyTaskBoard() {
     setTasks((prev) =>
       prev.map((t) => (t.section === section ? { ...t, done: false } : t))
     );
+  }
+
+  function startEditSectionTitle(section: Section) {
+    setEditingSection(section);
+    setEditingSectionTitle(sectionTitles[section]);
+  }
+
+  function saveSectionTitle() {
+    if (!editingSection) return;
+    const nextTitle = clampStr(editingSectionTitle);
+    if (!nextTitle) return;
+    setSectionTitles((prev) => ({ ...prev, [editingSection]: nextTitle }));
+    setEditingSection(null);
   }
 
   function onDragEnd(event: DragEndEvent) {
@@ -934,15 +980,40 @@ export default function JourneyTaskBoard() {
                     }}
                   >
                     <div>
-                      <div
+                      <span
+                        contentEditable={editingSection === s}
+                        suppressContentEditableWarning
+                        onClick={() => startEditSectionTitle(s)}
+                        onInput={(e) => {
+                          if (editingSection === s) {
+                            setEditingSectionTitle((e.currentTarget.textContent ?? "").trim());
+                          }
+                        }}
+                        onBlur={() => saveSectionTitle()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            saveSectionTitle();
+                          }
+                          if (e.key === "Escape") {
+                            e.preventDefault();
+                            setEditingSection(null);
+                          }
+                        }}
                         style={{
                           fontSize: 16,
                           fontWeight: 900,
                           color: themeMode === "light" ? "rgba(30,30,30,0.9)" : "rgba(255,255,255,0.95)",
+                          outline: editingSection === s ? "1px dashed rgba(255,255,255,0.25)" : "none",
+                          borderRadius: 6,
+                          padding: editingSection === s ? "2px 6px" : 0,
+                          cursor: "text",
+                          display: "inline-block",
                         }}
+                        title="Click to rename"
                       >
-                        {sectionLabel(s)}
-                      </div>
+                        {sectionTitles[s]}
+                      </span>
                       <div
                         style={{
                           fontSize: 13,
@@ -953,11 +1024,17 @@ export default function JourneyTaskBoard() {
                         {st.done}/{st.total} done • {st.pct}%
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <button
-                        onClick={() => resetSectionToIncomplete(s)}
-                        style={{
-                          border: theme.neutralBtnBorder,
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        {editingSection === s ? (
+                          <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    
+                
+                          </div>
+                        ) : null}
+                        <button
+                          onClick={() => resetSectionToIncomplete(s)}
+                          style={{
+                            border: theme.neutralBtnBorder,
                           background: theme.neutralBtnBg,
                           borderRadius: 10,
                           padding: "5px 8px",

@@ -3,10 +3,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   closestCenter,
+  DragOverlay,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 
 import {
@@ -308,6 +311,40 @@ function SortableTaskCard({
   );
 }
 
+function SectionDropZone({
+  id,
+  isLight,
+  children,
+}: {
+  id: string;
+  isLight: boolean;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        position: "relative",
+        borderRadius: 18,
+        ...(isOver
+          ? {
+              boxShadow: isLight
+                ? "0 0 0 2px rgba(0,0,0,0.18), 0 12px 30px rgba(0,0,0,0.18)"
+                : "0 0 0 2px rgba(255,255,255,0.18), 0 12px 30px rgba(0,0,0,0.35)",
+              border: isLight
+                ? "1px dashed rgba(0,0,0,0.25)"
+                : "1px dashed rgba(255,255,255,0.25)",
+              background: isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)",
+            }
+          : {}),
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function JourneyTaskBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
@@ -332,6 +369,7 @@ export default function JourneyTaskBoard() {
   });
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [editingSectionTitle, setEditingSectionTitle] = useState("");
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -488,6 +526,178 @@ export default function JourneyTaskBoard() {
         border: "1px solid rgba(255,90,90,0.45)",
         text: "rgba(255,225,225,0.95)",
       };
+
+  const renderTaskCard = (t: Task, isOverlay = false) => (
+    <div
+      style={{
+        border: t.done
+          ? T.border
+          : isLight
+            ? "1px solid rgba(180,60,60,0.35)"
+            : "1px solid rgba(255,120,120,0.35)",
+        borderRadius: 16,
+        padding: 12,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        background: t.done
+          ? T.card
+          : isLight
+            ? "linear-gradient(180deg, rgba(255,230,230,0.98) 0%, rgba(245,210,210,0.98) 100%)"
+            : "linear-gradient(180deg, rgba(46,26,26,0.98) 0%, rgba(26,16,16,0.98) 100%)",
+        color: t.done
+          ? T.text
+          : isLight
+            ? "rgba(60,20,20,0.9)"
+            : T.text,
+        boxShadow: isOverlay
+          ? "0 24px 60px rgba(0,0,0,0.45)"
+          : t.done
+            ? isLight
+              ? "0 10px 22px rgba(0,0,0,0.12)"
+              : "0 12px 26px rgba(0,0,0,0.35)"
+            : isLight
+              ? "0 12px 26px rgba(160,40,40,0.18)"
+              : "0 14px 30px rgba(120,40,40,0.25)",
+        position: "relative",
+        backdropFilter: T.blur,
+        WebkitBackdropFilter: T.blur,
+        transform: isOverlay ? "scale(1.02)" : "none",
+        transition: "transform 120ms ease",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 6,
+          borderTopLeftRadius: 16,
+          borderBottomLeftRadius: 16,
+          background: t.done
+            ? "linear-gradient(180deg, rgba(34,197,94,0.6) 0%, rgba(22,163,74,0.4) 100%)"
+            : isLight
+              ? "linear-gradient(180deg, rgba(185,28,28,0.6) 0%, rgba(127,29,29,0.5) 100%)"
+              : "linear-gradient(180deg, rgba(239,68,68,0.8) 0%, rgba(185,28,28,0.6) 100%)",
+          opacity: t.done ? 0.45 : 0.9,
+        }}
+      />
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <input
+          type="checkbox"
+          checked={t.done}
+          onChange={() => toggleDone(t.id)}
+          onPointerDown={(e) => e.stopPropagation()}
+          style={{
+            marginTop: 4,
+            width: 20,
+            height: 20,
+            accentColor: t.done ? "#22c55e" : "#ef4444",
+            cursor: "pointer",
+          }}
+        />
+
+        <div style={{ flex: 1 }}>
+          <div
+            style={{
+              fontWeight: 800,
+              textDecoration: t.done ? "line-through" : "none",
+              opacity: t.done ? 0.65 : 1,
+            }}
+          >
+            {t.title}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+            {t.category ? (
+              <span
+                style={{
+                  fontSize: 12,
+                  padding: "3px 8px",
+                  borderRadius: 999,
+                  border: T.border,
+                  background: T.panel,
+                  opacity: 0.9,
+                }}
+              >
+                {t.category}
+              </span>
+            ) : null}
+
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: t.done
+                  ? "rgba(34,197,94,0.12)"
+                  : isLight
+                    ? "rgba(239,68,68,0.16)"
+                    : "rgba(239,68,68,0.14)",
+                border: t.done
+                  ? "1px solid rgba(34,197,94,0.25)"
+                  : isLight
+                    ? "1px solid rgba(185,28,28,0.35)"
+                    : "1px solid rgba(239,68,68,0.3)",
+              }}
+            >
+              {t.done ? <IconCheck /> : <IconX />}
+              <span style={{ fontSize: 12, opacity: 0.75 }}>
+                {t.done ? "Completed" : "Not done"}
+              </span>
+            </span>
+          </div>
+
+          {t.comment ? (
+            <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
+              💬 {t.comment}
+            </div>
+          ) : (
+            <div style={{ marginTop: 8, fontSize: 13, opacity: 0.5 }}>
+              💬 No comment
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button
+            onClick={() => openEdit(t)}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              border: T.border,
+              background: T.panel,
+              borderRadius: 10,
+              padding: "6px 10px",
+              cursor: "pointer",
+              fontWeight: 700,
+              color: T.text,
+            }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => removeTask(t.id)}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              border: danger.border,
+              background: danger.bg,
+              borderRadius: 10,
+              padding: "6px 10px",
+              cursor: "pointer",
+              fontWeight: 700,
+              color: danger.text,
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   const filteredTasks = useMemo(() => {
     return tasks
@@ -772,6 +982,10 @@ export default function JourneyTaskBoard() {
     setEditingSection(null);
   }
 
+  function onDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
@@ -782,8 +996,44 @@ export default function JourneyTaskBoard() {
 
     setTasks((prev) => {
       const activeTask = prev.find((t) => t.id === activeId);
+      if (!activeTask) return prev;
+
+      if (overId.startsWith("section:")) {
+        const targetSection = overId.replace("section:", "") as Section;
+        const sourceSection = activeTask.section;
+
+        const sourceTasks = prev
+          .filter((t) => t.section === sourceSection)
+          .sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
+        const targetTasks = prev
+          .filter((t) => t.section === targetSection)
+          .sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
+
+        const nextSource = sourceTasks.filter((t) => t.id !== activeId);
+        const nextTarget = [...targetTasks];
+        nextTarget.push({ ...activeTask, section: targetSection });
+
+        const orderMap = new Map<string, number>();
+        nextSource.forEach((t, idx) => orderMap.set(t.id, idx));
+        nextTarget.forEach((t, idx) => orderMap.set(t.id, idx));
+
+        return prev.map((t) => {
+          if (t.id === activeId) {
+            return {
+              ...t,
+              section: targetSection,
+              order: orderMap.get(t.id) ?? 0,
+            };
+          }
+          if (t.section === sourceSection || t.section === targetSection) {
+            return { ...t, order: orderMap.get(t.id) ?? t.order ?? 0 };
+          }
+          return t;
+        });
+      }
+
       const overTask = prev.find((t) => t.id === overId);
-      if (!activeTask || !overTask) return prev;
+      if (!overTask) return prev;
 
       const sourceSection = activeTask.section;
       const targetSection = overTask.section;
@@ -835,6 +1085,11 @@ export default function JourneyTaskBoard() {
         return t;
       });
     });
+    setActiveId(null);
+  }
+
+  function onDragCancel() {
+    setActiveId(null);
   }
 
   return (
@@ -1227,7 +1482,9 @@ export default function JourneyTaskBoard() {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={onDragStart}
             onDragEnd={onDragEnd}
+            onDragCancel={onDragCancel}
           >
             <div
               style={{
@@ -1242,21 +1499,21 @@ export default function JourneyTaskBoard() {
                 const st = sectionStats[s];
 
                 return (
-                  <div
-                    key={s}
-                    style={{
-                    background: T.column,
-                    backdropFilter: T.blur,
-                    WebkitBackdropFilter: T.blur,
-                    borderRadius: 18,
-                    padding: 12,
-                    border: T.border,
-                    boxShadow: "0 8px 22px rgba(0,0,0,0.12)",
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "clamp(420px, 68dvh, 760px)",
-                  }}
-                >
+                  <SectionDropZone key={s} id={`section:${s}`} isLight={isLight}>
+                    <div
+                      style={{
+                        background: T.column,
+                        backdropFilter: T.blur,
+                        WebkitBackdropFilter: T.blur,
+                        borderRadius: 18,
+                        padding: 12,
+                        border: T.border,
+                        boxShadow: "0 8px 22px rgba(0,0,0,0.12)",
+                        display: "flex",
+                        flexDirection: "column",
+                        minHeight: "clamp(420px, 68dvh, 760px)",
+                      }}
+                    >
                   <div
                     style={{
                       display: "flex",
@@ -1358,177 +1615,23 @@ export default function JourneyTaskBoard() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                           {list.map((t) => (
                             <SortableTaskCard key={t.id} id={t.id}>
-                            <div
-                              style={{
-                                border: t.done
-                                  ? T.border
-                                  : isLight
-                                    ? "1px solid rgba(180,60,60,0.35)"
-                                    : "1px solid rgba(255,120,120,0.35)",
-                                borderRadius: 16,
-                                padding: 12,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 10,
-                                background: t.done
-                                  ? T.card
-                                  : isLight
-                                    ? "linear-gradient(180deg, rgba(255,230,230,0.98) 0%, rgba(245,210,210,0.98) 100%)"
-                                    : "linear-gradient(180deg, rgba(46,26,26,0.98) 0%, rgba(26,16,16,0.98) 100%)",
-                                color: t.done
-                                  ? T.text
-                                  : isLight
-                                    ? "rgba(60,20,20,0.9)"
-                                    : T.text,
-                                boxShadow: t.done
-                                  ? isLight
-                                    ? "0 10px 22px rgba(0,0,0,0.12)"
-                                    : "0 12px 26px rgba(0,0,0,0.35)"
-                                  : isLight
-                                    ? "0 12px 26px rgba(160,40,40,0.18)"
-                                    : "0 14px 30px rgba(120,40,40,0.25)",
-                                position: "relative",
-                                backdropFilter: T.blur,
-                                WebkitBackdropFilter: T.blur,
-                              }}
-                            >
-                              <div
-                                aria-hidden="true"
-                                style={{
-                                  position: "absolute",
-                                  left: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                  width: 6,
-                                  borderTopLeftRadius: 16,
-                                  borderBottomLeftRadius: 16,
-                                  background: t.done
-                                    ? "linear-gradient(180deg, rgba(34,197,94,0.6) 0%, rgba(22,163,74,0.4) 100%)"
-                                    : isLight
-                                      ? "linear-gradient(180deg, rgba(185,28,28,0.6) 0%, rgba(127,29,29,0.5) 100%)"
-                                      : "linear-gradient(180deg, rgba(239,68,68,0.8) 0%, rgba(185,28,28,0.6) 100%)",
-                                  opacity: t.done ? 0.45 : 0.9,
-                                }}
-                              />
-                              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                                <input
-                                  type="checkbox"
-                                  checked={t.done}
-                                  onChange={() => toggleDone(t.id)}
-                                  style={{
-                                    marginTop: 4,
-                                    width: 20,
-                                    height: 20,
-                                    accentColor: t.done ? "#22c55e" : "#ef4444",
-                                    cursor: "pointer",
-                                  }}
-                                />
-
-                                  <div style={{ flex: 1 }}>
-                                    <div
-                                      style={{
-                                        fontWeight: 800,
-                                        textDecoration: t.done ? "line-through" : "none",
-                                        opacity: t.done ? 0.65 : 1,
-                                      }}
-                                    >
-                                      {t.title}
-                                    </div>
-
-                                    <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-                                      {t.category ? (
-                                        <span
-                                          style={{
-                                            fontSize: 12,
-                                            padding: "3px 8px",
-                                            borderRadius: 999,
-                                            border: T.border,
-                                            background: T.panel,
-                                            opacity: 0.9,
-                                          }}
-                                        >
-                                          {t.category}
-                                        </span>
-                                      ) : null}
-
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 6,
-                                        padding: "2px 8px",
-                                        borderRadius: 999,
-                                        background: t.done
-                                          ? "rgba(34,197,94,0.12)"
-                                          : isLight
-                                            ? "rgba(239,68,68,0.16)"
-                                            : "rgba(239,68,68,0.14)",
-                                        border: t.done
-                                          ? "1px solid rgba(34,197,94,0.25)"
-                                          : isLight
-                                            ? "1px solid rgba(185,28,28,0.35)"
-                                            : "1px solid rgba(239,68,68,0.3)",
-                                      }}
-                                    >
-                                      {t.done ? <IconCheck /> : <IconX />}
-                                      <span style={{ fontSize: 12, opacity: 0.75 }}>
-                                        {t.done ? "Completed" : "Not done"}
-                                      </span>
-                                    </span>
-                                    </div>
-
-                                    {t.comment ? (
-                                      <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
-                                        💬 {t.comment}
-                                      </div>
-                                    ) : (
-                                      <div style={{ marginTop: 8, fontSize: 13, opacity: 0.5 }}>
-                                        💬 No comment
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                  <button
-                                    onClick={() => openEdit(t)}
-                                    style={{
-                                      border: T.border,
-                                      background: T.panel,
-                                      borderRadius: 10,
-                                      padding: "6px 10px",
-                                      cursor: "pointer",
-                                      fontWeight: 700,
-                                      color: T.text,
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => removeTask(t.id)}
-                                    style={{
-                                      border: danger.border,
-                                      background: danger.bg,
-                                      borderRadius: 10,
-                                      padding: "6px 10px",
-                                      cursor: "pointer",
-                                      fontWeight: 700,
-                                      color: danger.text,
-                                    }}
-                                  >
-                                      Delete
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
+                              {renderTaskCard(t)}
                             </SortableTaskCard>
                           ))}
                         </div>
                       </SortableContext>
                     )}
-                  </div>
+                    </div>
+                  </SectionDropZone>
                 );
               })}
             </div>
+            <DragOverlay>
+              {activeId ? (() => {
+                const t = tasks.find((x) => x.id === activeId);
+                return t ? renderTaskCard(t, true) : null;
+              })() : null}
+            </DragOverlay>
           </DndContext>
         ) : activeView === "summary" ? (
           <div

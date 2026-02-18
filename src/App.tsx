@@ -31,6 +31,14 @@ type Task = {
   order?: number;
 };
 
+type CalendarEvent = {
+  id: string;
+  dateKey: string;
+  time: string;
+  title: string;
+  createdAt: number;
+};
+
 const STORAGE_KEY = "journey_task_board_v1";
 
 function uid() {
@@ -255,10 +263,16 @@ export default function JourneyTaskBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
-  const [activeView, setActiveView] = useState<"board" | "summary" | "settings">("board");
+  const [activeView, setActiveView] = useState<"board" | "summary" | "settings" | "calendar">("board");
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedDays, setCompletedDays] = useState<string[]>([]);
+  const [calendarOffset, setCalendarOffset] = useState(0);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date | null>(null);
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventTime, setEventTime] = useState("09:00");
   const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>({
     Morning: "Morning",
     Midday: "Midday",
@@ -298,6 +312,18 @@ export default function JourneyTaskBoard() {
       if (raw) {
         const parsed = JSON.parse(raw) as string[];
         if (Array.isArray(parsed)) setCompletedDays(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("journey_calendar_events");
+      if (raw) {
+        const parsed = JSON.parse(raw) as CalendarEvent[];
+        if (Array.isArray(parsed)) setCalendarEvents(parsed);
       }
     } catch {
       // ignore
@@ -355,6 +381,14 @@ export default function JourneyTaskBoard() {
       // ignore
     }
   }, [completedDays]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_calendar_events", JSON.stringify(calendarEvents));
+    } catch {
+      // ignore
+    }
+  }, [calendarEvents]);
 
   useEffect(() => {
     try {
@@ -552,6 +586,48 @@ export default function JourneyTaskBoard() {
     return streak;
   }, [completedDays]);
 
+  const calendarData = useMemo(() => {
+    const base = new Date();
+    const view = new Date(base.getFullYear(), base.getMonth() + calendarOffset, 1);
+    const year = view.getFullYear();
+    const month = view.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startWeekday = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: Array<{ day: number | null; key: string }> = [];
+
+    for (let i = 0; i < startWeekday; i += 1) {
+      cells.push({ day: null, key: `e-${i}` });
+    }
+    for (let d = 1; d <= daysInMonth; d += 1) {
+      cells.push({ day: d, key: `d-${d}` });
+    }
+
+    const completedSet = new Set(completedDays);
+    const isCompleted = (day: number) =>
+      completedSet.has(`${year}-${month}-${day}`);
+
+    const eventsForMonth = calendarEvents.filter((e) => {
+      const [y, m] = e.dateKey.split("-").map((v) => Number(v));
+      return y === year && m === month;
+    });
+    const eventsCountByDay = new Map<number, number>();
+    for (const e of eventsForMonth) {
+      const parts = e.dateKey.split("-");
+      const d = Number(parts[2]);
+      eventsCountByDay.set(d, (eventsCountByDay.get(d) ?? 0) + 1);
+    }
+
+    return {
+      year,
+      month,
+      monthLabel: view.toLocaleString(undefined, { month: "long", year: "numeric" }),
+      cells,
+      isCompleted,
+      eventsCountByDay,
+    };
+  }, [calendarOffset, completedDays, calendarEvents]);
+
   function saveDayCompletion() {
     const today = new Date();
     const key = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
@@ -561,6 +637,34 @@ export default function JourneyTaskBoard() {
       setTasks((prev) => prev.map((t) => ({ ...t, done: true })));
     }
     setCompletedDays((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  }
+
+  function openCalendarDay(year: number, month: number, day: number) {
+    const selected = new Date(year, month, day);
+    setCalendarSelectedDate(selected);
+    setEventTitle("");
+    setEventTime("09:00");
+    setCalendarModalOpen(true);
+  }
+
+  function saveCalendarEvent() {
+    if (!calendarSelectedDate) return;
+    const title = clampStr(eventTitle);
+    if (!title) return;
+    const key = `${calendarSelectedDate.getFullYear()}-${calendarSelectedDate.getMonth()}-${calendarSelectedDate.getDate()}`;
+    const newEvent: CalendarEvent = {
+      id: uid(),
+      dateKey: key,
+      time: eventTime || "00:00",
+      title,
+      createdAt: Date.now(),
+    };
+    setCalendarEvents((prev) => [...prev, newEvent]);
+    setEventTitle("");
+  }
+
+  function removeCalendarEvent(id: string) {
+    setCalendarEvents((prev) => prev.filter((e) => e.id !== id));
   }
 
   function openCreate() {
@@ -785,6 +889,43 @@ export default function JourneyTaskBoard() {
           zIndex: 1,
         }}
       >
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            padding: 4,
+            borderRadius: 12,
+            border: theme.chipBorder,
+            background: theme.chipBg,
+            alignSelf: "flex-start",
+          }}
+        >
+          {([
+            { key: "board", label: "Board" },
+            { key: "summary", label: "Summary" },
+            { key: "calendar", label: "Calendar" },
+            { key: "settings", label: "Settings" },
+          ] as const).map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setActiveView(t.key)}
+              style={{
+                border: theme.chipBorder,
+                background: activeView === t.key ? theme.primaryBtnBg : "transparent",
+                color: theme.chipText,
+                borderRadius: 10,
+                padding: "7px 12px",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: 12,
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         {/* Header */}
         <div
           style={{
@@ -936,66 +1077,45 @@ export default function JourneyTaskBoard() {
                   }}
                 >
                   Close
-                </button>
-              </div>
+            </button>
+          </div>
 
-              <div style={{ fontSize: 12, opacity: 0.7 }}>View</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  onClick={() => {
-                    setActiveView("board");
-                    setMenuOpen(false);
-                  }}
-                  style={{
-                    border: theme.chipBorder,
-                    background: activeView === "board" ? theme.primaryBtnBg : "transparent",
-                    color: theme.chipText,
-                    borderRadius: 10,
-                    padding: "7px 10px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    fontSize: 12,
-                  }}
-                >
-                  Board
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveView("summary");
-                    setMenuOpen(false);
-                  }}
-                  style={{
-                    border: theme.chipBorder,
-                    background: activeView === "summary" ? theme.primaryBtnBg : "transparent",
-                    color: theme.chipText,
-                    borderRadius: 10,
-                    padding: "7px 10px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    fontSize: 12,
-                  }}
-                >
-                  Summary
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveView("settings");
-                    setMenuOpen(false);
-                  }}
-                  style={{
-                    border: theme.chipBorder,
-                    background: activeView === "settings" ? theme.primaryBtnBg : "transparent",
-                    color: theme.chipText,
-                    borderRadius: 10,
-                    padding: "7px 10px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    fontSize: 12,
-                  }}
-                >
-                  Settings
-                </button>
-              </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              padding: 4,
+              borderRadius: 12,
+              border: theme.chipBorder,
+              background: theme.chipBg,
+              alignSelf: "flex-start",
+            }}
+          >
+            {([
+              { key: "board", label: "Board" },
+              { key: "summary", label: "Summary" },
+              { key: "calendar", label: "Calendar" },
+              { key: "settings", label: "Settings" },
+            ] as const).map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setActiveView(t.key)}
+                style={{
+                  border: theme.chipBorder,
+                  background: activeView === t.key ? theme.primaryBtnBg : "transparent",
+                  color: theme.chipText,
+                  borderRadius: 10,
+                  padding: "7px 12px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  fontSize: 12,
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
               <div style={{ fontSize: 12, opacity: 0.7 }}>Filters</div>
               <select
@@ -1481,7 +1601,7 @@ export default function JourneyTaskBoard() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : activeView === "settings" ? (
           <div
             style={{
               display: "grid",
@@ -1570,6 +1690,201 @@ export default function JourneyTaskBoard() {
               <div style={{ fontSize: 12, opacity: 0.7 }}>
                 Examples: notifications, reminders, weekly goals.
               </div>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              background: themeMode === "light"
+                ? "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(236,236,236,0.98) 100%)"
+                : "linear-gradient(180deg, rgba(28,28,28,0.98) 0%, rgba(16,16,16,0.98) 100%)",
+              borderRadius: 20,
+              padding: 18,
+              border: themeMode === "light"
+                ? "1px solid rgba(0,0,0,0.08)"
+                : "1px solid rgba(255,255,255,0.08)",
+              boxShadow: themeMode === "light"
+                ? "0 14px 30px rgba(0,0,0,0.14)"
+                : "0 14px 30px rgba(0,0,0,0.4)",
+              color: themeMode === "light" ? "rgba(20,20,20,0.92)" : "rgba(255,255,255,0.9)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: themeMode === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)",
+                    border: themeMode === "light" ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.1)",
+                    fontWeight: 900,
+                  }}
+                >
+                  📅
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 900 }}>Calendar</div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>Plan events and track streaks</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  onClick={() => setCalendarOffset((v) => v - 1)}
+                  style={{
+                    border: theme.neutralBtnBorder,
+                    background: theme.neutralBtnBg,
+                    borderRadius: 10,
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    color: theme.neutralBtnText,
+                  }}
+                >
+                  Prev
+                </button>
+                <button
+                  onClick={() => setCalendarOffset(0)}
+                  style={{
+                    border: theme.neutralBtnBorder,
+                    background: theme.neutralBtnBg,
+                    borderRadius: 10,
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    color: theme.neutralBtnText,
+                  }}
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => setCalendarOffset((v) => v + 1)}
+                  style={{
+                    border: theme.neutralBtnBorder,
+                    background: theme.neutralBtnBg,
+                    borderRadius: 10,
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    color: theme.neutralBtnText,
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+              <select
+                value={`${calendarData.year}-${calendarData.month}`}
+                onChange={(e) => {
+                  const [y, m] = e.target.value.split("-").map((v) => Number(v));
+                  const now = new Date();
+                  const diff = (y - now.getFullYear()) * 12 + (m - now.getMonth());
+                  setCalendarOffset(diff);
+                }}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: theme.selectBorder,
+                  background: theme.selectBg,
+                  color: theme.selectText,
+                }}
+              >
+                {Array.from({ length: 36 }).map((_, idx) => {
+                  const base = new Date();
+                  const d = new Date(base.getFullYear(), base.getMonth() - 12 + idx, 1);
+                  const value = `${d.getFullYear()}-${d.getMonth()}`;
+                  return (
+                    <option key={value} value={value}>
+                      {d.toLocaleString(undefined, { month: "long", year: "numeric" })}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(7, 1fr)",
+                gap: 8,
+                padding: 10,
+                borderRadius: 14,
+                background: themeMode === "light" ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.04)",
+                border: themeMode === "light" ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              {(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const).map((d) => (
+                <div
+                  key={d}
+                  style={{
+                    fontSize: 11,
+                    opacity: 0.7,
+                    textAlign: "center",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {d}
+                </div>
+              ))}
+              {calendarData.cells.map((cell) => (
+                <div
+                  key={cell.key}
+                  style={{
+                    height: 42,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: cell.day
+                      ? calendarData.isCompleted(cell.day)
+                        ? "linear-gradient(180deg, rgba(34,197,94,0.5) 0%, rgba(22,163,74,0.35) 100%)"
+                        : themeMode === "light"
+                          ? "rgba(0,0,0,0.04)"
+                          : "rgba(255,255,255,0.06)"
+                      : "transparent",
+                    border: cell.day
+                      ? themeMode === "light"
+                        ? "1px solid rgba(0,0,0,0.08)"
+                        : "1px solid rgba(255,255,255,0.08)"
+                      : "none",
+                    color: themeMode === "light" ? "rgba(20,20,20,0.9)" : "rgba(255,255,255,0.9)",
+                    fontWeight: 700,
+                    fontSize: 12,
+                    position: "relative",
+                    cursor: cell.day ? "pointer" : "default",
+                  }}
+                  onClick={() => {
+                    if (cell.day) openCalendarDay(calendarData.year, calendarData.month, cell.day);
+                  }}
+                >
+                  {cell.day ?? ""}
+                  {cell.day && (calendarData.eventsCountByDay.get(cell.day) ?? 0) > 0 ? (
+                    <span
+                      style={{
+                        position: "absolute",
+                        right: 6,
+                        top: 4,
+                        fontSize: 10,
+                        opacity: 0.75,
+                      }}
+                    >
+                      {calendarData.eventsCountByDay.get(cell.day)}
+                    </span>
+                  ) : null}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1707,6 +2022,148 @@ export default function JourneyTaskBoard() {
                 {editingId ? "Save" : "Create"}
               </button>
             </div>
+          </form>
+        </Modal>
+
+        <Modal
+          open={calendarModalOpen}
+          title={
+            calendarSelectedDate
+              ? calendarSelectedDate.toLocaleDateString(undefined, {
+                  weekday: "short",
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })
+              : "New event"
+          }
+          onClose={() => setCalendarModalOpen(false)}
+          theme={theme}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveCalendarEvent();
+            }}
+            style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}
+          >
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+              <input
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                placeholder="Event title"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: theme.inputBorder,
+                  background: theme.inputBg,
+                  color: theme.modalText,
+                  boxSizing: "border-box",
+                }}
+              />
+              <input
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "12px 10px",
+                  borderRadius: 12,
+                  border: theme.inputBorder,
+                  background: theme.inputBg,
+                  color: theme.modalText,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setCalendarModalOpen(false)}
+                style={{
+                  border: theme.neutralBtnBorder,
+                  background: theme.neutralBtnBg,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  color: theme.neutralBtnText,
+                }}
+              >
+                Close
+              </button>
+              <button
+                type="submit"
+                style={{
+                  border: theme.chipBorder,
+                  background: theme.primaryBtnBg,
+                  color: theme.chipText,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 800,
+                }}
+              >
+                Add event
+              </button>
+            </div>
+
+            {calendarSelectedDate ? (
+              <div style={{ marginTop: 6 }}>
+                <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>Events</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {calendarEvents
+                    .filter((e) =>
+                      e.dateKey ===
+                      `${calendarSelectedDate.getFullYear()}-${calendarSelectedDate.getMonth()}-${calendarSelectedDate.getDate()}`
+                    )
+                    .sort((a, b) => a.time.localeCompare(b.time))
+                    .map((e) => (
+                      <div
+                        key={e.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          border: theme.modalBorder,
+                          background: theme.inputBg,
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                          <div style={{ fontSize: 12, opacity: 0.8 }}>{e.time}</div>
+                          <div style={{ fontWeight: 700 }}>{e.title}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeCalendarEvent(e.id)}
+                          style={{
+                            border: danger.border,
+                            background: danger.bg,
+                            borderRadius: 10,
+                            padding: "6px 10px",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                            color: danger.text,
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  {calendarEvents.filter((e) =>
+                    e.dateKey ===
+                    `${calendarSelectedDate.getFullYear()}-${calendarSelectedDate.getMonth()}-${calendarSelectedDate.getDate()}`
+                  ).length === 0 ? (
+                    <div style={{ fontSize: 12, opacity: 0.6 }}>No events for this day.</div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </form>
         </Modal>
 

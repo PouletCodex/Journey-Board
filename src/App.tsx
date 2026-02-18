@@ -623,14 +623,16 @@ export default function JourneyTaskBoard() {
                           <SortableTaskCard key={t.id} id={t.id}>
                             <div
                               style={{
-                                border: "1px solid rgba(0,0,0,0.10)",
+                                border: "1px solid rgba(18,18,18,0.18)",
                                 borderRadius: 16,
                                 padding: 12,
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: 10,
-                                background: "white",
-                                color: "rgba(0,0,0,0.88)",
+                                background:
+                                  "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(230,230,230,0.96) 100%)",
+                                color: "rgba(18,18,18,0.9)",
+                                boxShadow: "0 10px 22px rgba(0,0,0,0.10)",
                               }}
                             >
                               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -659,8 +661,9 @@ export default function JourneyTaskBoard() {
                                           fontSize: 12,
                                           padding: "3px 8px",
                                           borderRadius: 999,
-                                          border: "1px solid rgba(0,0,0,0.12)",
-                                          opacity: 0.85,
+                                          border: "1px solid rgba(0,0,0,0.18)",
+                                          background: "rgba(255,255,255,0.7)",
+                                          opacity: 0.9,
                                         }}
                                       >
                                         {t.category}

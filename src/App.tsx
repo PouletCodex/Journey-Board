@@ -993,7 +993,24 @@ export default function JourneyTaskBoard() {
           title={editingId ? "Edit task" : "Add task"}
           onClose={closeModal}
         >
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 14 }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitForm();
+            }}
+            onKeyDown={(e) => {
+              const target = e.target as HTMLElement;
+              if (e.key === "Enter" && target.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                submitForm();
+              }
+              if (e.key === "Enter" && target.tagName === "TEXTAREA" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                submitForm();
+              }
+            }}
+            style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 14 }}
+          >
             <div style={{ gridColumn: "1 / -1" }}>
               <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Title *</div>
               <input
@@ -1083,11 +1100,12 @@ export default function JourneyTaskBoard() {
                   fontWeight: 700,
                   color: "rgba(240,240,240,0.95)",
                 }}
+                type="button"
               >
                 Cancel
               </button>
               <button
-                onClick={submitForm}
+                type="submit"
                 style={{
                   border: "1px solid rgba(255,255,255,0.16)",
                   background: "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)",
@@ -1102,7 +1120,7 @@ export default function JourneyTaskBoard() {
                 {editingId ? "Save" : "Create"}
               </button>
             </div>
-          </div>
+          </form>
         </Modal>
 
         <div style={{ fontSize: 12, opacity: 0.6, textAlign: "center", paddingBottom: 12 }}>

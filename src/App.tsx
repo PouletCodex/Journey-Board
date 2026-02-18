@@ -249,6 +249,7 @@ export default function JourneyTaskBoard() {
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<"board" | "summary" | "settings">("board");
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>({
     Morning: "Morning",
     Midday: "Midday",
@@ -802,96 +803,22 @@ export default function JourneyTaskBoard() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <div
+            <button
+              onClick={() => setMenuOpen(true)}
               style={{
-                display: "inline-flex",
-                gap: 6,
-                padding: 4,
+                padding: "9px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.04)",
+                border: theme.neutralBtnBorder,
+                background: theme.neutralBtnBg,
+                cursor: "pointer",
+                color: theme.neutralBtnText,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
               }}
+              aria-label="Open menu"
             >
-              <button
-                onClick={() => setActiveView("board")}
-                style={{
-                  border: theme.chipBorder,
-                  background:
-                    activeView === "board"
-                      ? theme.primaryBtnBg
-                      : "transparent",
-                  color: theme.chipText,
-                  borderRadius: 10,
-                  padding: "7px 12px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                Board
-              </button>
-              <button
-                onClick={() => setActiveView("summary")}
-                style={{
-                  border: theme.chipBorder,
-                  background:
-                    activeView === "summary"
-                      ? theme.primaryBtnBg
-                      : "transparent",
-                  color: theme.chipText,
-                  borderRadius: 10,
-                  padding: "7px 12px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                Summary
-              </button>
-              <button
-                onClick={() => setActiveView("settings")}
-                style={{
-                  border: theme.chipBorder,
-                  background:
-                    activeView === "settings"
-                      ? theme.primaryBtnBg
-                      : "transparent",
-                  color: theme.chipText,
-                  borderRadius: 10,
-                  padding: "7px 12px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                Settings
-              </button>
-            </div>
-
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 10,
-                border: theme.selectBorder,
-                background: theme.selectBg,
-                color: theme.selectText,
-              }}
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-              <input
-                type="checkbox"
-                checked={onlyIncomplete}
-                onChange={(e) => setOnlyIncomplete(e.target.checked)}
-              />
-              Show only incomplete
-            </label>
-
+              ≡
+            </button>
             <button
               onClick={openCreate}
               style={{
@@ -907,36 +834,180 @@ export default function JourneyTaskBoard() {
               + Add Task
             </button>
 
-            <button
-              onClick={resetAllToIncomplete}
-              style={{
-                padding: "9px 12px",
-                borderRadius: 12,
-                border: theme.neutralBtnBorder,
-                background: theme.neutralBtnBg,
-                cursor: "pointer",
-                color: theme.neutralBtnText,
-              }}
-            >
-              Reset
-            </button>
-
-            <button
-              onClick={clearAll}
-              style={{
-                padding: "9px 12px",
-                borderRadius: 12,
-                border: danger.border,
-                background: danger.bg,
-                cursor: "pointer",
-                color: danger.text,
-                fontWeight: 700,
-              }}
-            >
-              Clear
-            </button>
           </div>
         </div>
+
+        {menuOpen ? (
+          <>
+            <div
+              onClick={() => setMenuOpen(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 20, background: "rgba(0,0,0,0.35)" }}
+            />
+            <div
+              style={{
+                position: "fixed",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: "min(320px, 82vw)",
+                zIndex: 21,
+                padding: 16,
+                background: theme.modalBg,
+                borderRight: theme.modalBorder,
+                color: theme.modalText,
+                boxShadow: themeMode === "light"
+                  ? "0 18px 40px rgba(0,0,0,0.18)"
+                  : "0 22px 48px rgba(0,0,0,0.45)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 16, fontWeight: 900 }}>Menu</div>
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    border: theme.neutralBtnBorder,
+                    background: theme.neutralBtnBg,
+                    borderRadius: 10,
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    color: theme.neutralBtnText,
+                    fontWeight: 700,
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div style={{ fontSize: 12, opacity: 0.7 }}>View</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={() => {
+                    setActiveView("board");
+                    setMenuOpen(false);
+                  }}
+                  style={{
+                    border: theme.chipBorder,
+                    background: activeView === "board" ? theme.primaryBtnBg : "transparent",
+                    color: theme.chipText,
+                    borderRadius: 10,
+                    padding: "7px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: 12,
+                  }}
+                >
+                  Board
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveView("summary");
+                    setMenuOpen(false);
+                  }}
+                  style={{
+                    border: theme.chipBorder,
+                    background: activeView === "summary" ? theme.primaryBtnBg : "transparent",
+                    color: theme.chipText,
+                    borderRadius: 10,
+                    padding: "7px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: 12,
+                  }}
+                >
+                  Summary
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveView("settings");
+                    setMenuOpen(false);
+                  }}
+                  style={{
+                    border: theme.chipBorder,
+                    background: activeView === "settings" ? theme.primaryBtnBg : "transparent",
+                    color: theme.chipText,
+                    borderRadius: 10,
+                    padding: "7px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: 12,
+                  }}
+                >
+                  Settings
+                </button>
+              </div>
+
+              <div style={{ fontSize: 12, opacity: 0.7 }}>Filters</div>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: theme.selectBorder,
+                  background: theme.selectBg,
+                  color: theme.selectText,
+                }}
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <input
+                  type="checkbox"
+                  checked={onlyIncomplete}
+                  onChange={(e) => setOnlyIncomplete(e.target.checked)}
+                />
+                Show only incomplete
+              </label>
+
+              <div style={{ fontSize: 12, opacity: 0.7 }}>Actions</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={() => {
+                    resetAllToIncomplete();
+                    setMenuOpen(false);
+                  }}
+                  style={{
+                    border: theme.neutralBtnBorder,
+                    background: theme.neutralBtnBg,
+                    borderRadius: 10,
+                    padding: "7px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    color: theme.neutralBtnText,
+                    fontSize: 12,
+                  }}
+                >
+                  Reset all
+                </button>
+                <button
+                  onClick={() => {
+                    clearAll();
+                    setMenuOpen(false);
+                  }}
+                  style={{
+                    border: danger.border,
+                    background: danger.bg,
+                    borderRadius: 10,
+                    padding: "7px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    color: danger.text,
+                    fontSize: 12,
+                  }}
+                >
+                  Clear all
+                </button>
+              </div>
+            </div>
+          </>
+        ) : null}
 
         {activeView === "board" ? (
           <DndContext
@@ -1004,7 +1075,7 @@ export default function JourneyTaskBoard() {
                           fontSize: 16,
                           fontWeight: 900,
                           color: themeMode === "light" ? "rgba(30,30,30,0.9)" : "rgba(255,255,255,0.95)",
-                          outline: editingSection === s ? "1px dashed rgba(255,255,255,0.25)" : "none",
+                          outline: "none",
                           borderRadius: 6,
                           padding: editingSection === s ? "2px 6px" : 0,
                           cursor: "text",

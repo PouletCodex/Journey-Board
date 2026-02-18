@@ -473,7 +473,7 @@ export default function JourneyTaskBoard() {
             fontSize: "min(78vw, 78vh)",
             fontWeight: 900,
             letterSpacing: "0.08em",
-            color: "rgba(0,0,0,0.9)",
+            color: "rgba(255,255,255,0.22)",
             transform: "translateY(4vh)",
             userSelect: "none",
           }}

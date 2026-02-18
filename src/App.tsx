@@ -437,6 +437,13 @@ export default function JourneyTaskBoard() {
     setTasks((prev) => prev.map((t) => ({ ...t, done: false })));
   }
 
+  function resetSectionToIncomplete(section: Section) {
+    if (!confirm(`Mark all ${sectionLabel(section)} tasks as incomplete?`)) return;
+    setTasks((prev) =>
+      prev.map((t) => (t.section === section ? { ...t, done: false } : t))
+    );
+  }
+
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
@@ -734,27 +741,44 @@ export default function JourneyTaskBoard() {
                       minHeight: "clamp(420px, 68dvh, 760px)",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        marginBottom: 10,
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
-                          {sectionLabel(s)}
-                        </div>
-                        <div style={{ fontSize: 13, opacity: 0.85, color: "rgba(255,255,255,0.85)" }}>
-                          {st.done}/{st.total} done • {st.pct}%
-                        </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                        {sectionLabel(s)}
                       </div>
+                      <div style={{ fontSize: 13, opacity: 0.85, color: "rgba(255,255,255,0.85)" }}>
+                        {st.done}/{st.total} done • {st.pct}%
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <button
+                        onClick={() => resetSectionToIncomplete(s)}
+                        style={{
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
+                          borderRadius: 10,
+                          padding: "5px 8px",
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          color: "rgba(240,240,240,0.95)",
+                          fontSize: 12,
+                        }}
+                      >
+                        Uncheck all
+                      </button>
                       <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
                         {st.pct}%
                       </div>
                     </div>
+                  </div>
 
                     {list.length === 0 ? (
                       <div style={{ fontSize: 13, opacity: 0.85, padding: 10, color: "rgba(255,255,255,0.8)" }}>

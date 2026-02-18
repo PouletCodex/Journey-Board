@@ -165,7 +165,7 @@ function Modal({
       <div
         style={{
           width: "min(720px, 96vw)",
-          background: "white",
+          background: "linear-gradient(180deg, #e4e4e4 0%, #d6d6d6 100%)",
           borderRadius: 16,
           boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
           padding: 16,
@@ -185,7 +185,7 @@ function Modal({
             onClick={onClose}
             style={{
               border: "1px solid rgba(0,0,0,0.12)",
-              background: "white",
+              background: "rgba(230,230,230,0.92)",
               borderRadius: 10,
               padding: "6px 10px",
               cursor: "pointer",
@@ -459,16 +459,17 @@ export default function JourneyTaskBoard() {
         {/* Header */}
         <div
           style={{
-            background: "white",
+            background: "linear-gradient(180deg, #1f1f1f 0%, #151515 100%)",
             borderRadius: 18,
             padding: 16,
-            boxShadow: "0 8px 22px rgba(0,0,0,0.06)",
-            border: "1px solid rgba(101, 144, 44, 0.48)",
+            boxShadow: "0 12px 28px rgba(0,0,0,0.32)",
+            border: "1px solid rgba(255,255,255,0.08)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             gap: 16,
             flexWrap: "wrap",
+            color: "rgba(255,255,255,0.92)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -478,7 +479,7 @@ export default function JourneyTaskBoard() {
                 Morning / Midday / After Work — tick tasks, add comments, track progress.
               </div>
             </div>
-            <div style={{ color: "rgba(0,0,0,0.65)" }}>
+            <div style={{ color: "rgba(255,255,255,0.75)" }}>
               <ProgressRing value={globalProgress} />
             </div>
           </div>
@@ -491,7 +492,7 @@ export default function JourneyTaskBoard() {
                 padding: "8px 10px",
                 borderRadius: 10,
                 border: "1px solid rgba(0,0,0,0.14)",
-                background: "white",
+                background: "rgba(230,230,230,0.92)",
               }}
             >
               {categories.map((c) => (
@@ -531,7 +532,7 @@ export default function JourneyTaskBoard() {
                 padding: "9px 12px",
                 borderRadius: 12,
                 border: "1px solid rgba(0,0,0,0.12)",
-                background: "white",
+                background: "rgba(230,230,230,0.92)",
                 cursor: "pointer",
               }}
             >
@@ -544,7 +545,7 @@ export default function JourneyTaskBoard() {
                 padding: "9px 12px",
                 borderRadius: 12,
                 border: "1px solid rgba(255,0,0,0.25)",
-                background: "white",
+                background: "rgba(230,230,230,0.92)",
                 cursor: "pointer",
                 color: "rgb(220, 38, 38)",
                 fontWeight: 700,
@@ -623,16 +624,16 @@ export default function JourneyTaskBoard() {
                           <SortableTaskCard key={t.id} id={t.id}>
                             <div
                               style={{
-                                border: "1px solid rgba(18,18,18,0.18)",
+                                border: "1px solid rgba(255,255,255,0.08)",
                                 borderRadius: 16,
                                 padding: 12,
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: 10,
                                 background:
-                                  "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(230,230,230,0.96) 100%)",
-                                color: "rgba(18,18,18,0.9)",
-                                boxShadow: "0 10px 22px rgba(0,0,0,0.10)",
+                                  "linear-gradient(180deg, rgba(36,36,36,0.98) 0%, rgba(22,22,22,0.98) 100%)",
+                                color: "rgba(255,255,255,0.88)",
+                                boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
                               }}
                             >
                               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -661,8 +662,8 @@ export default function JourneyTaskBoard() {
                                           fontSize: 12,
                                           padding: "3px 8px",
                                           borderRadius: 999,
-                                          border: "1px solid rgba(0,0,0,0.18)",
-                                          background: "rgba(255,255,255,0.7)",
+                                          border: "1px solid rgba(255,255,255,0.12)",
+                                          background: "rgba(255,255,255,0.06)",
                                           opacity: 0.9,
                                         }}
                                       >
@@ -694,7 +695,7 @@ export default function JourneyTaskBoard() {
                                     onClick={() => openEdit(t)}
                                     style={{
                                       border: "1px solid rgba(0,0,0,0.12)",
-                                      background: "white",
+                                      background: "rgba(230,230,230,0.92)",
                                       borderRadius: 10,
                                       padding: "6px 10px",
                                       cursor: "pointer",
@@ -707,7 +708,7 @@ export default function JourneyTaskBoard() {
                                     onClick={() => removeTask(t.id)}
                                     style={{
                                       border: "1px solid rgba(255,0,0,0.25)",
-                                      background: "white",
+                                      background: "rgba(230,230,230,0.92)",
                                       borderRadius: 10,
                                       padding: "6px 10px",
                                       cursor: "pointer",
@@ -748,6 +749,7 @@ export default function JourneyTaskBoard() {
                   padding: "10px 12px",
                   borderRadius: 12,
                   border: "1px solid rgba(0,0,0,0.14)",
+                  background: "rgba(235,235,235,0.96)",
                 }}
               />
             </div>
@@ -762,7 +764,7 @@ export default function JourneyTaskBoard() {
                   padding: "10px 12px",
                   borderRadius: 12,
                   border: "1px solid rgba(0,0,0,0.14)",
-                  background: "white",
+                  background: "rgba(235,235,235,0.96)",
                 }}
               >
                 <option value="Morning">Morning</option>
@@ -782,6 +784,7 @@ export default function JourneyTaskBoard() {
                   padding: "10px 12px",
                   borderRadius: 12,
                   border: "1px solid rgba(0,0,0,0.14)",
+                  background: "rgba(235,235,235,0.96)",
                 }}
               />
             </div>
@@ -798,6 +801,7 @@ export default function JourneyTaskBoard() {
                   padding: "10px 12px",
                   borderRadius: 12,
                   border: "1px solid rgba(0,0,0,0.14)",
+                  background: "rgba(235,235,235,0.96)",
                   resize: "vertical",
                 }}
               />
@@ -808,11 +812,12 @@ export default function JourneyTaskBoard() {
                 onClick={closeModal}
                 style={{
                   border: "1px solid rgba(0,0,0,0.12)",
-                  background: "black",
+                  background: "rgba(35,35,35,0.95)",
                   borderRadius: 12,
                   padding: "10px 12px",
                   cursor: "pointer",
                   fontWeight: 700,
+                  color: "white",
                 }}
               >
                 Cancel

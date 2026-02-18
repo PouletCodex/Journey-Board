@@ -273,6 +273,8 @@ export default function JourneyTaskBoard() {
   const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date | null>(null);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("09:00");
+  const [headerTitle, setHeaderTitle] = useState("Journey Task Board");
+  const [editingHeader, setEditingHeader] = useState(false);
   const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>({
     Morning: "Morning",
     Midday: "Midday",
@@ -325,6 +327,15 @@ export default function JourneyTaskBoard() {
         const parsed = JSON.parse(raw) as CalendarEvent[];
         if (Array.isArray(parsed)) setCalendarEvents(parsed);
       }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("journey_header_title");
+      if (raw) setHeaderTitle(raw);
     } catch {
       // ignore
     }
@@ -389,6 +400,14 @@ export default function JourneyTaskBoard() {
       // ignore
     }
   }, [calendarEvents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_header_title", headerTitle);
+    } catch {
+      // ignore
+    }
+  }, [headerTitle]);
 
   useEffect(() => {
     try {
@@ -665,6 +684,13 @@ export default function JourneyTaskBoard() {
 
   function removeCalendarEvent(id: string) {
     setCalendarEvents((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function saveHeaderTitle(next?: string) {
+    const value = clampStr(next ?? headerTitle);
+    if (!value) return;
+    setHeaderTitle(value);
+    setEditingHeader(false);
   }
 
   function openCreate() {
@@ -967,7 +993,37 @@ export default function JourneyTaskBoard() {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ fontSize: 24, fontWeight: 900 }}>Journey Task Board</div>
+              <span
+                contentEditable={editingHeader}
+                suppressContentEditableWarning
+                onClick={() => setEditingHeader(true)}
+                onInput={(e) => {
+                  if (editingHeader) {
+                    setHeaderTitle((e.currentTarget.textContent ?? "").trim());
+                  }
+                }}
+                onBlur={() => saveHeaderTitle()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    saveHeaderTitle();
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setEditingHeader(false);
+                  }
+                }}
+                style={{
+                  fontSize: 24,
+                  fontWeight: 900,
+                  outline: "none",
+                  cursor: "text",
+                  display: "inline-block",
+                }}
+                title="Click to rename"
+              >
+                {headerTitle}
+              </span>
               <div style={{ fontSize: 13, opacity: 0.7, color: theme.headerSubtext }}>
                 Morning / Midday / After Work — tick tasks, add comments, track progress.
               </div>

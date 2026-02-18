@@ -136,11 +136,20 @@ function Modal({
   title,
   children,
   onClose,
+  theme,
 }: {
   open: boolean;
   title: string;
   children: React.ReactNode;
   onClose: () => void;
+  theme: {
+    modalBg: string;
+    modalBorder: string;
+    modalText: string;
+    neutralBtnBg: string;
+    neutralBtnBorder: string;
+    neutralBtnText: string;
+  };
 }) {
   if (!open) return null;
   return (
@@ -165,12 +174,12 @@ function Modal({
       <div
         style={{
           width: "min(860px, 94vw)",
-          background: "linear-gradient(180deg, rgba(30,30,30,0.98) 0%, rgba(18,18,18,0.98) 100%)",
+          background: theme.modalBg,
           borderRadius: 20,
           boxShadow: "0 24px 64px rgba(0,0,0,0.45)",
           padding: 22,
-          border: "1px solid rgba(255,255,255,0.08)",
-          color: "rgba(255,255,255,0.9)",
+            border: theme.modalBorder,
+            color: theme.modalText,
           boxSizing: "border-box",
         }}
       >
@@ -189,12 +198,12 @@ function Modal({
           <button
             onClick={onClose}
             style={{
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
+              border: theme.neutralBtnBorder,
+              background: theme.neutralBtnBg,
               borderRadius: 10,
               padding: "7px 12px",
               cursor: "pointer",
-              color: "rgba(240,240,240,0.95)",
+              color: theme.neutralBtnText,
               fontWeight: 700,
             }}
           >
@@ -238,7 +247,8 @@ export default function JourneyTaskBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
-  const [activeView, setActiveView] = useState<"board" | "summary">("board");
+  const [activeView, setActiveView] = useState<"board" | "summary" | "settings">("board");
+  const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -265,6 +275,15 @@ export default function JourneyTaskBoard() {
     }
   }, []);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("journey_theme_mode");
+      if (saved === "dark" || saved === "light") setThemeMode(saved);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Save
   useEffect(() => {
     try {
@@ -274,6 +293,29 @@ export default function JourneyTaskBoard() {
     }
   }, [tasks]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_theme_mode", themeMode);
+    } catch {
+      // ignore
+    }
+  }, [themeMode]);
+  const danger = useMemo(() => {
+    if (themeMode === "light") {
+      return {
+        bg: "linear-gradient(180deg, rgba(210,70,70,0.95) 0%, rgba(170,40,40,0.98) 100%)",
+        border: "1px solid rgba(160,30,30,0.45)",
+        text: "rgba(255,245,245,0.98)",
+      } as const;
+    }
+
+    return {
+      bg: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
+      border: "1px solid rgba(255,90,90,0.45)",
+      text: "rgba(255,225,225,0.95)",
+    } as const;
+  }, [themeMode]);
+
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const t of tasks) if (t.category?.trim()) set.add(t.category.trim());
@@ -281,11 +323,81 @@ export default function JourneyTaskBoard() {
   }, [tasks]);
 
   const sections: Section[] = ["Morning", "Midday", "AfterWork"];
-  const sectionBackgrounds: Record<Section, string> = {
-    Morning: "linear-gradient(160deg, #1a1a1a 0%, #4a4a4a 100%)",
-    Midday: "linear-gradient(160deg, #121212 0%, #5a5a5a 100%)",
-    AfterWork: "linear-gradient(160deg, #0f0f0f 0%, #3f3f3f 100%)",
-  };
+  const theme = useMemo(() => {
+    if (themeMode === "light") {
+      return {
+        pageBg: "rgba(235, 236, 240, 0.85)",
+        headerBg: "linear-gradient(180deg, #f2f2f2 0%, #e6e6e6 100%)",
+        headerBorder: "1px solid rgba(0,0,0,0.08)",
+        headerShadow: "0 10px 26px rgba(0,0,0,0.12)",
+        headerText: "rgba(20,20,20,0.92)",
+        headerSubtext: "rgba(20,20,20,0.6)",
+        chipBg: "rgba(0,0,0,0.06)",
+        chipBorder: "1px solid rgba(0,0,0,0.12)",
+        chipText: "rgba(20,20,20,0.9)",
+        ringColor: "rgba(0,0,0,0.65)",
+        selectBg: "linear-gradient(180deg, #f0f0f0 0%, #e2e2e2 100%)",
+        selectBorder: "1px solid rgba(0,0,0,0.18)",
+        selectText: "rgba(20,20,20,0.9)",
+        primaryBtnBg: "linear-gradient(180deg, #2d2d2d 0%, #1e1e1e 100%)",
+        neutralBtnBg: "linear-gradient(180deg, #f0f0f0 0%, #e2e2e2 100%)",
+        neutralBtnBorder: "1px solid rgba(0,0,0,0.18)",
+        neutralBtnText: "rgba(20,20,20,0.9)",
+        cardBg: "linear-gradient(180deg, rgba(245,245,245,0.98) 0%, rgba(232,232,232,0.98) 100%)",
+        cardBorder: "1px solid rgba(0,0,0,0.12)",
+        cardText: "rgba(20,20,20,0.92)",
+        badgeBg: "rgba(0,0,0,0.06)",
+        badgeBorder: "1px solid rgba(0,0,0,0.18)",
+        modalBg: "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(230,230,230,0.98) 100%)",
+        modalBorder: "1px solid rgba(0,0,0,0.12)",
+        modalText: "rgba(20,20,20,0.92)",
+        inputBg: "rgba(255,255,255,0.9)",
+        inputBorder: "1px solid rgba(0,0,0,0.2)",
+      } as const;
+    }
+
+    return {
+      pageBg: "rgba(145, 116, 117, 0.24)",
+      headerBg: "linear-gradient(180deg, #1f1f1f 0%, #151515 100%)",
+      headerBorder: "1px solid rgba(255,255,255,0.08)",
+      headerShadow: "0 12px 28px rgba(0,0,0,0.32)",
+      headerText: "rgba(255,255,255,0.92)",
+      headerSubtext: "rgba(255,255,255,0.7)",
+      chipBg: "rgba(255,255,255,0.06)",
+      chipBorder: "1px solid rgba(255,255,255,0.12)",
+      chipText: "rgba(255,255,255,0.9)",
+      ringColor: "rgba(255,255,255,0.75)",
+      selectBg: "linear-gradient(180deg, rgba(52,52,52,0.95) 0%, rgba(26,26,26,0.98) 100%)",
+      selectBorder: "1px solid rgba(255,255,255,0.16)",
+      selectText: "rgba(240,240,240,0.95)",
+      primaryBtnBg: "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)",
+      neutralBtnBg: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
+      neutralBtnBorder: "1px solid rgba(255,255,255,0.12)",
+      neutralBtnText: "rgba(240,240,240,0.95)",
+      cardBg: "linear-gradient(180deg, rgba(36,36,36,0.98) 0%, rgba(22,22,22,0.98) 100%)",
+      cardBorder: "1px solid rgba(255,255,255,0.08)",
+      cardText: "rgba(255,255,255,0.88)",
+      badgeBg: "rgba(255,255,255,0.06)",
+      badgeBorder: "1px solid rgba(255,255,255,0.12)",
+      modalBg: "linear-gradient(180deg, rgba(30,30,30,0.98) 0%, rgba(18,18,18,0.98) 100%)",
+      modalBorder: "1px solid rgba(255,255,255,0.08)",
+      modalText: "rgba(255,255,255,0.9)",
+      inputBg: "rgba(255,255,255,0.06)",
+      inputBorder: "1px solid rgba(255,255,255,0.12)",
+    } as const;
+  }, [themeMode]);
+  const sectionBackgrounds: Record<Section, string> =
+    themeMode === "light"
+      ? {
+          Morning: "linear-gradient(160deg, #f2f2f2 0%, #dcdcdc 100%)",
+          Midday: "linear-gradient(160deg, #ededed 0%, #d6d6d6 100%)",
+          AfterWork: "linear-gradient(160deg, #e9e9e9 0%, #d0d0d0 100%)",
+        }
+      : {
+          Morning: "linear-gradient(160deg, #1a1a1a 0%, #4a4a4a 100%)",
+          Midday: "linear-gradient(160deg, #121212 0%, #5a5a5a 100%)",
+          AfterWork: "linear-gradient(160deg, #0f0f0f 0%, #3f3f3f 100%)",
+        };
 
   const filteredTasks = useMemo(() => {
     return tasks
@@ -544,8 +656,8 @@ export default function JourneyTaskBoard() {
         padding: "22px clamp(12px, 2.2vw, 30px)",
         fontFamily:
           'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial',
-        color: "rgba(0,0,0,0.88)",
-        background: "rgba(145, 116, 117, 0.24)",
+        color: theme.headerText,
+        background: theme.pageBg,
         minHeight: "100dvh",
         width: "100%",
         boxSizing: "border-box",
@@ -593,16 +705,16 @@ export default function JourneyTaskBoard() {
         {/* Header */}
         <div
           style={{
-            background: "linear-gradient(180deg, #1f1f1f 0%, #151515 100%)",
+            background: theme.headerBg,
             borderRadius: 18,
             padding: "20px 22px",
-            boxShadow: "0 12px 28px rgba(0,0,0,0.32)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: theme.headerShadow,
+            border: theme.headerBorder,
             display: "flex",
             flexDirection: "column",
             alignItems: "stretch",
             gap: 18,
-            color: "rgba(255,255,255,0.92)",
+            color: theme.headerText,
           }}
         >
           <div
@@ -616,7 +728,7 @@ export default function JourneyTaskBoard() {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ fontSize: 24, fontWeight: 900 }}>Journey Task Board</div>
-              <div style={{ fontSize: 13, opacity: 0.7 }}>
+              <div style={{ fontSize: 13, opacity: 0.7, color: theme.headerSubtext }}>
                 Morning / Midday / After Work — tick tasks, add comments, track progress.
               </div>
             </div>
@@ -625,19 +737,19 @@ export default function JourneyTaskBoard() {
                 style={{
                   padding: "8px 12px",
                   borderRadius: 12,
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: theme.chipBg,
+                  border: theme.chipBorder,
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: theme.chipText }}>
                   {streakDays}
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.8 }}>day streak</div>
               </div>
-              <div style={{ color: "rgba(255,255,255,0.75)" }}>
+              <div style={{ color: theme.ringColor }}>
                 <ProgressRing value={globalProgress} />
               </div>
             </div>
@@ -657,12 +769,12 @@ export default function JourneyTaskBoard() {
               <button
                 onClick={() => setActiveView("board")}
                 style={{
-                  border: "1px solid rgba(255,255,255,0.12)",
+                  border: theme.chipBorder,
                   background:
                     activeView === "board"
-                      ? "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)"
+                      ? theme.primaryBtnBg
                       : "transparent",
-                  color: "rgba(255,255,255,0.9)",
+                  color: theme.chipText,
                   borderRadius: 10,
                   padding: "7px 12px",
                   cursor: "pointer",
@@ -674,12 +786,12 @@ export default function JourneyTaskBoard() {
               <button
                 onClick={() => setActiveView("summary")}
                 style={{
-                  border: "1px solid rgba(255,255,255,0.12)",
+                  border: theme.chipBorder,
                   background:
                     activeView === "summary"
-                      ? "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)"
+                      ? theme.primaryBtnBg
                       : "transparent",
-                  color: "rgba(255,255,255,0.9)",
+                  color: theme.chipText,
                   borderRadius: 10,
                   padding: "7px 12px",
                   cursor: "pointer",
@@ -687,6 +799,23 @@ export default function JourneyTaskBoard() {
                 }}
               >
                 Summary
+              </button>
+              <button
+                onClick={() => setActiveView("settings")}
+                style={{
+                  border: theme.chipBorder,
+                  background:
+                    activeView === "settings"
+                      ? theme.primaryBtnBg
+                      : "transparent",
+                  color: theme.chipText,
+                  borderRadius: 10,
+                  padding: "7px 12px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                Settings
               </button>
             </div>
 
@@ -696,9 +825,9 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "8px 10px",
                 borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.16)",
-                background: "linear-gradient(180deg, rgba(52,52,52,0.95) 0%, rgba(26,26,26,0.98) 100%)",
-                color: "rgba(240,240,240,0.95)",
+                border: theme.selectBorder,
+                background: theme.selectBg,
+                color: theme.selectText,
               }}
             >
               {categories.map((c) => (
@@ -722,9 +851,9 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "9px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.12)",
-                background: "rgba(0,0,0,0.92)",
-                color: "white",
+                border: theme.chipBorder,
+                background: theme.primaryBtnBg,
+                color: theme.chipText,
                 fontWeight: 700,
                 cursor: "pointer",
               }}
@@ -737,10 +866,10 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "9px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
+                border: theme.neutralBtnBorder,
+                background: theme.neutralBtnBg,
                 cursor: "pointer",
-                color: "rgba(240,240,240,0.95)",
+                color: theme.neutralBtnText,
               }}
             >
               Reset
@@ -751,10 +880,10 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "9px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(255,90,90,0.45)",
-                background: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
+                border: danger.border,
+                background: danger.bg,
                 cursor: "pointer",
-                color: "rgba(255,225,225,0.95)",
+                color: danger.text,
                 fontWeight: 700,
               }}
             >
@@ -805,10 +934,22 @@ export default function JourneyTaskBoard() {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                      <div
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 900,
+                          color: themeMode === "light" ? "rgba(30,30,30,0.9)" : "rgba(255,255,255,0.95)",
+                        }}
+                      >
                         {sectionLabel(s)}
                       </div>
-                      <div style={{ fontSize: 13, opacity: 0.85, color: "rgba(255,255,255,0.85)" }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          opacity: 0.85,
+                          color: themeMode === "light" ? "rgba(30,30,30,0.7)" : "rgba(255,255,255,0.85)",
+                        }}
+                      >
                         {st.done}/{st.total} done • {st.pct}%
                       </div>
                     </div>
@@ -816,26 +957,39 @@ export default function JourneyTaskBoard() {
                       <button
                         onClick={() => resetSectionToIncomplete(s)}
                         style={{
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
+                          border: theme.neutralBtnBorder,
+                          background: theme.neutralBtnBg,
                           borderRadius: 10,
                           padding: "5px 8px",
                           cursor: "pointer",
                           fontWeight: 700,
-                          color: "rgba(240,240,240,0.95)",
+                          color: theme.neutralBtnText,
                           fontSize: 12,
                         }}
                       >
                         Uncheck all
                       </button>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                      <div
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 900,
+                          color: themeMode === "light" ? "rgba(30,30,30,0.9)" : "rgba(255,255,255,0.95)",
+                        }}
+                      >
                         {st.pct}%
                       </div>
                     </div>
                   </div>
 
                     {list.length === 0 ? (
-                      <div style={{ fontSize: 13, opacity: 0.85, padding: 10, color: "rgba(255,255,255,0.8)" }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          opacity: 0.85,
+                          padding: 10,
+                          color: themeMode === "light" ? "rgba(30,30,30,0.7)" : "rgba(255,255,255,0.8)",
+                        }}
+                      >
                         No tasks here (with current filters).
                       </div>
                     ) : (
@@ -849,20 +1003,32 @@ export default function JourneyTaskBoard() {
                             <div
                               style={{
                                 border: t.done
-                                  ? "1px solid rgba(255,255,255,0.08)"
-                                  : "1px solid rgba(255,120,120,0.35)",
+                                  ? theme.cardBorder
+                                  : themeMode === "light"
+                                    ? "1px solid rgba(180,60,60,0.35)"
+                                    : "1px solid rgba(255,120,120,0.35)",
                                 borderRadius: 16,
                                 padding: 12,
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: 10,
                                 background: t.done
-                                  ? "linear-gradient(180deg, rgba(36,36,36,0.98) 0%, rgba(22,22,22,0.98) 100%)"
-                                  : "linear-gradient(180deg, rgba(46,26,26,0.98) 0%, rgba(26,16,16,0.98) 100%)",
-                                color: "rgba(255,255,255,0.88)",
+                                  ? theme.cardBg
+                                  : themeMode === "light"
+                                    ? "linear-gradient(180deg, rgba(255,230,230,0.98) 0%, rgba(245,210,210,0.98) 100%)"
+                                    : "linear-gradient(180deg, rgba(46,26,26,0.98) 0%, rgba(26,16,16,0.98) 100%)",
+                                color: t.done
+                                  ? theme.cardText
+                                  : themeMode === "light"
+                                    ? "rgba(60,20,20,0.9)"
+                                    : theme.cardText,
                                 boxShadow: t.done
-                                  ? "0 12px 26px rgba(0,0,0,0.35)"
-                                  : "0 14px 30px rgba(120,40,40,0.25)",
+                                  ? themeMode === "light"
+                                    ? "0 10px 22px rgba(0,0,0,0.12)"
+                                    : "0 12px 26px rgba(0,0,0,0.35)"
+                                  : themeMode === "light"
+                                    ? "0 12px 26px rgba(160,40,40,0.18)"
+                                    : "0 14px 30px rgba(120,40,40,0.25)",
                                 position: "relative",
                               }}
                             >
@@ -878,7 +1044,9 @@ export default function JourneyTaskBoard() {
                                   borderBottomLeftRadius: 16,
                                   background: t.done
                                     ? "linear-gradient(180deg, rgba(34,197,94,0.6) 0%, rgba(22,163,74,0.4) 100%)"
-                                    : "linear-gradient(180deg, rgba(239,68,68,0.8) 0%, rgba(185,28,28,0.6) 100%)",
+                                    : themeMode === "light"
+                                      ? "linear-gradient(180deg, rgba(185,28,28,0.6) 0%, rgba(127,29,29,0.5) 100%)"
+                                      : "linear-gradient(180deg, rgba(239,68,68,0.8) 0%, rgba(185,28,28,0.6) 100%)",
                                   opacity: t.done ? 0.45 : 0.9,
                                 }}
                               />
@@ -914,8 +1082,8 @@ export default function JourneyTaskBoard() {
                                             fontSize: 12,
                                             padding: "3px 8px",
                                             borderRadius: 999,
-                                            border: "1px solid rgba(255,255,255,0.12)",
-                                            background: "rgba(255,255,255,0.06)",
+                                            border: theme.badgeBorder,
+                                            background: theme.badgeBg,
                                             opacity: 0.9,
                                           }}
                                         >
@@ -932,10 +1100,14 @@ export default function JourneyTaskBoard() {
                                         borderRadius: 999,
                                         background: t.done
                                           ? "rgba(34,197,94,0.12)"
-                                          : "rgba(239,68,68,0.14)",
+                                          : themeMode === "light"
+                                            ? "rgba(239,68,68,0.16)"
+                                            : "rgba(239,68,68,0.14)",
                                         border: t.done
                                           ? "1px solid rgba(34,197,94,0.25)"
-                                          : "1px solid rgba(239,68,68,0.3)",
+                                          : themeMode === "light"
+                                            ? "1px solid rgba(185,28,28,0.35)"
+                                            : "1px solid rgba(239,68,68,0.3)",
                                       }}
                                     >
                                       {t.done ? <IconCheck /> : <IconX />}
@@ -957,32 +1129,32 @@ export default function JourneyTaskBoard() {
                                   </div>
 
                                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                    <button
-                                      onClick={() => openEdit(t)}
-                                      style={{
-                                        border: "1px solid rgba(255,255,255,0.12)",
-                                        background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
-                                        borderRadius: 10,
-                                        padding: "6px 10px",
-                                        cursor: "pointer",
-                                        fontWeight: 700,
-                                        color: "rgba(240,240,240,0.95)",
-                                      }}
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      onClick={() => removeTask(t.id)}
-                                      style={{
-                                        border: "1px solid rgba(255,90,90,0.45)",
-                                        background: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
-                                        borderRadius: 10,
-                                        padding: "6px 10px",
-                                        cursor: "pointer",
-                                        fontWeight: 700,
-                                        color: "rgba(255,225,225,0.95)",
-                                      }}
-                                    >
+                                  <button
+                                    onClick={() => openEdit(t)}
+                                    style={{
+                                      border: theme.neutralBtnBorder,
+                                      background: theme.neutralBtnBg,
+                                      borderRadius: 10,
+                                      padding: "6px 10px",
+                                      cursor: "pointer",
+                                      fontWeight: 700,
+                                      color: theme.neutralBtnText,
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => removeTask(t.id)}
+                                    style={{
+                                      border: danger.border,
+                                      background: danger.bg,
+                                      borderRadius: 10,
+                                      padding: "6px 10px",
+                                      cursor: "pointer",
+                                      fontWeight: 700,
+                                      color: danger.text,
+                                    }}
+                                  >
                                       Delete
                                     </button>
                                   </div>
@@ -998,7 +1170,7 @@ export default function JourneyTaskBoard() {
               })}
             </div>
           </DndContext>
-        ) : (
+        ) : activeView === "summary" ? (
           <div
             style={{
               display: "grid",
@@ -1082,12 +1254,104 @@ export default function JourneyTaskBoard() {
               </div>
             ))}
           </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                background: themeMode === "light"
+                  ? "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(236,236,236,0.98) 100%)"
+                  : "linear-gradient(180deg, rgba(28,28,28,0.98) 0%, rgba(16,16,16,0.98) 100%)",
+                borderRadius: 18,
+                padding: 16,
+                border: themeMode === "light"
+                  ? "1px solid rgba(0,0,0,0.08)"
+                  : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: themeMode === "light"
+                  ? "0 12px 26px rgba(0,0,0,0.12)"
+                  : "0 12px 26px rgba(0,0,0,0.35)",
+                color: themeMode === "light" ? "rgba(20,20,20,0.92)" : "rgba(255,255,255,0.9)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 900 }}>Theme</div>
+              <div style={{ fontSize: 13, opacity: 0.7 }}>
+                Choose light or dark mode for the whole app.
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={() => setThemeMode("dark")}
+                  style={{
+                    border: theme.chipBorder,
+                    background: themeMode === "dark" ? theme.primaryBtnBg : "transparent",
+                    color: theme.chipText,
+                    borderRadius: 10,
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                  }}
+                >
+                  Dark mode
+                </button>
+                <button
+                  onClick={() => setThemeMode("light")}
+                  style={{
+                    border: theme.chipBorder,
+                    background: themeMode === "light" ? theme.primaryBtnBg : "transparent",
+                    color: theme.chipText,
+                    borderRadius: 10,
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                  }}
+                >
+                  Light mode
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: themeMode === "light"
+                  ? "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(236,236,236,0.98) 100%)"
+                  : "linear-gradient(180deg, rgba(28,28,28,0.98) 0%, rgba(16,16,16,0.98) 100%)",
+                borderRadius: 18,
+                padding: 16,
+                border: themeMode === "light"
+                  ? "1px solid rgba(0,0,0,0.08)"
+                  : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: themeMode === "light"
+                  ? "0 12px 26px rgba(0,0,0,0.12)"
+                  : "0 12px 26px rgba(0,0,0,0.35)",
+                color: themeMode === "light" ? "rgba(20,20,20,0.92)" : "rgba(255,255,255,0.9)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 900 }}>Preferences</div>
+              <div style={{ fontSize: 13, opacity: 0.7 }}>
+                More settings will appear here.
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                Examples: notifications, reminders, weekly goals.
+              </div>
+            </div>
+          </div>
         )}
 
         <Modal
           open={modalOpen}
           title={editingId ? "Edit task" : "Add task"}
           onClose={closeModal}
+          theme={theme}
         >
           <form
             onSubmit={(e) => {
@@ -1117,9 +1381,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "rgba(255,255,255,0.92)",
+                  border: theme.inputBorder,
+                  background: theme.inputBg,
+                  color: theme.modalText,
                   boxSizing: "border-box",
                 }}
               />
@@ -1134,9 +1398,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "rgba(255,255,255,0.92)",
+                  border: theme.inputBorder,
+                  background: theme.inputBg,
+                  color: theme.modalText,
                   boxSizing: "border-box",
                 }}
               >
@@ -1156,9 +1420,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "rgba(255,255,255,0.92)",
+                  border: theme.inputBorder,
+                  background: theme.inputBg,
+                  color: theme.modalText,
                   boxSizing: "border-box",
                 }}
               />
@@ -1175,9 +1439,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "rgba(255,255,255,0.92)",
+                  border: theme.inputBorder,
+                  background: theme.inputBg,
+                  color: theme.modalText,
                   resize: "vertical",
                   boxSizing: "border-box",
                 }}
@@ -1188,13 +1452,13 @@ export default function JourneyTaskBoard() {
               <button
                 onClick={closeModal}
                 style={{
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
+                  border: theme.neutralBtnBorder,
+                  background: theme.neutralBtnBg,
                   borderRadius: 12,
                   padding: "10px 14px",
                   cursor: "pointer",
                   fontWeight: 700,
-                  color: "rgba(240,240,240,0.95)",
+                  color: theme.neutralBtnText,
                 }}
                 type="button"
               >
@@ -1203,9 +1467,9 @@ export default function JourneyTaskBoard() {
               <button
                 type="submit"
                 style={{
-                  border: "1px solid rgba(255,255,255,0.16)",
-                  background: "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)",
-                  color: "rgba(255,255,255,0.96)",
+                  border: theme.chipBorder,
+                  background: theme.primaryBtnBg,
+                  color: theme.chipText,
                   borderRadius: 12,
                   padding: "10px 14px",
                   cursor: "pointer",

@@ -164,11 +164,13 @@ function Modal({
     >
       <div
         style={{
-          width: "min(720px, 96vw)",
-          background: "linear-gradient(180deg, #e4e4e4 0%, #d6d6d6 100%)",
-          borderRadius: 16,
-          boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
-          padding: 16,
+          width: "min(860px, 94vw)",
+          background: "linear-gradient(180deg, rgba(30,30,30,0.98) 0%, rgba(18,18,18,0.98) 100%)",
+          borderRadius: 20,
+          boxShadow: "0 24px 64px rgba(0,0,0,0.45)",
+          padding: 22,
+          border: "1px solid rgba(255,255,255,0.08)",
+          color: "rgba(255,255,255,0.9)",
         }}
       >
         <div
@@ -180,15 +182,19 @@ function Modal({
             marginBottom: 12,
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 800 }}>{title}</div>
+          <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "0.01em" }}>
+            {title}
+          </div>
           <button
             onClick={onClose}
             style={{
-              border: "1px solid rgba(0,0,0,0.12)",
-              background: "rgba(230,230,230,0.92)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
               borderRadius: 10,
-              padding: "6px 10px",
+              padding: "7px 12px",
               cursor: "pointer",
+              color: "rgba(240,240,240,0.95)",
+              fontWeight: 700,
             }}
           >
             Close
@@ -445,8 +451,35 @@ export default function JourneyTaskBoard() {
         width: "100%",
         boxSizing: "border-box",
         overflowX: "hidden",
+        position: "relative",
       }}
     >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+          zIndex: 0,
+          opacity: 0.08,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "min(78vw, 78vh)",
+            fontWeight: 900,
+            letterSpacing: "0.08em",
+            color: "rgba(0,0,0,0.9)",
+            transform: "translateY(4vh)",
+            userSelect: "none",
+          }}
+        >
+          MT
+        </div>
+      </div>
       <div
         style={{
           width: "100%",
@@ -454,6 +487,8 @@ export default function JourneyTaskBoard() {
           display: "flex",
           flexDirection: "column",
           gap: 14,
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {/* Header */}
@@ -491,8 +526,9 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "8px 10px",
                 borderRadius: 10,
-                border: "1px solid rgba(0,0,0,0.14)",
-                background: "rgba(230,230,230,0.92)",
+                border: "1px solid rgba(255,255,255,0.16)",
+                background: "linear-gradient(180deg, rgba(52,52,52,0.95) 0%, rgba(26,26,26,0.98) 100%)",
+                color: "rgba(240,240,240,0.95)",
               }}
             >
               {categories.map((c) => (
@@ -531,9 +567,10 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "9px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.12)",
-                background: "rgba(230,230,230,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
                 cursor: "pointer",
+                color: "rgba(240,240,240,0.95)",
               }}
             >
               Reset
@@ -738,34 +775,36 @@ export default function JourneyTaskBoard() {
           title={editingId ? "Edit task" : "Add task"}
           onClose={closeModal}
         >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 14 }}>
             <div style={{ gridColumn: "1 / -1" }}>
-              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Title *</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Title *</div>
               <input
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="e.g. Gym / Study / Call…"
                 style={{
                   width: "100%",
-                  padding: "10px 12px",
+                  padding: "12px 14px",
                   borderRadius: 12,
-                  border: "1px solid rgba(0,0,0,0.14)",
-                  background: "rgba(235,235,235,0.96)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "rgba(255,255,255,0.92)",
                 }}
               />
             </div>
 
             <div>
-              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Section</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Section</div>
               <select
                 value={formSection}
                 onChange={(e) => setFormSection(e.target.value as Section)}
                 style={{
                   width: "100%",
-                  padding: "10px 12px",
+                  padding: "12px 14px",
                   borderRadius: 12,
-                  border: "1px solid rgba(0,0,0,0.14)",
-                  background: "rgba(235,235,235,0.96)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "rgba(255,255,255,0.92)",
                 }}
               >
                 <option value="Morning">Morning</option>
@@ -775,23 +814,24 @@ export default function JourneyTaskBoard() {
             </div>
 
             <div>
-              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Category</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Category</div>
               <input
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
                 placeholder="e.g. Sport / Study / Work"
                 style={{
                   width: "100%",
-                  padding: "10px 12px",
+                  padding: "12px 14px",
                   borderRadius: 12,
-                  border: "1px solid rgba(0,0,0,0.14)",
-                  background: "rgba(235,235,235,0.96)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "rgba(255,255,255,0.92)",
                 }}
               />
             </div>
 
             <div style={{ gridColumn: "1 / -1" }}>
-              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Comment</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Comment</div>
               <textarea
                 value={formComment}
                 onChange={(e) => setFormComment(e.target.value)}
@@ -799,10 +839,11 @@ export default function JourneyTaskBoard() {
                 rows={4}
                 style={{
                   width: "100%",
-                  padding: "10px 12px",
+                  padding: "12px 14px",
                   borderRadius: 12,
-                  border: "1px solid rgba(0,0,0,0.14)",
-                  background: "rgba(235,235,235,0.96)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "rgba(255,255,255,0.92)",
                   resize: "vertical",
                 }}
               />
@@ -812,13 +853,13 @@ export default function JourneyTaskBoard() {
               <button
                 onClick={closeModal}
                 style={{
-                  border: "1px solid rgba(0,0,0,0.12)",
-                  background: "rgba(35,35,35,0.95)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
                   borderRadius: 12,
-                  padding: "10px 12px",
+                  padding: "10px 14px",
                   cursor: "pointer",
                   fontWeight: 700,
-                  color: "white",
+                  color: "rgba(240,240,240,0.95)",
                 }}
               >
                 Cancel
@@ -826,11 +867,11 @@ export default function JourneyTaskBoard() {
               <button
                 onClick={submitForm}
                 style={{
-                  border: "1px solid rgba(0,0,0,0.12)",
-                  background: "rgba(0,0,0,0.92)",
-                  color: "white",
+                  border: "1px solid rgba(255,255,255,0.16)",
+                  background: "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)",
+                  color: "rgba(255,255,255,0.96)",
                   borderRadius: 12,
-                  padding: "10px 12px",
+                  padding: "10px 14px",
                   cursor: "pointer",
                   fontWeight: 800,
                   

@@ -273,6 +273,11 @@ export default function JourneyTaskBoard() {
   }, [tasks]);
 
   const sections: Section[] = ["Morning", "Midday", "AfterWork"];
+  const sectionBackgrounds: Record<Section, string> = {
+    Morning: "linear-gradient(160deg, #1a1a1a 0%, #4a4a4a 100%)",
+    Midday: "linear-gradient(160deg, #121212 0%, #5a5a5a 100%)",
+    AfterWork: "linear-gradient(160deg, #0f0f0f 0%, #3f3f3f 100%)",
+  };
 
   const filteredTasks = useMemo(() => {
     return tasks
@@ -568,7 +573,7 @@ export default function JourneyTaskBoard() {
                 <div
                   key={s}
                   style={{
-                    background: "grey",
+                    background: sectionBackgrounds[s],
                     borderRadius: 18,
                     padding: 12,
                     border: "1px solid rgba(0,0,0,0.06)",
@@ -588,16 +593,20 @@ export default function JourneyTaskBoard() {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 16, fontWeight: 900 }}>{sectionLabel(s)}</div>
-                      <div style={{ fontSize: 13, opacity: 0.7 }}>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                        {sectionLabel(s)}
+                      </div>
+                      <div style={{ fontSize: 13, opacity: 0.85, color: "rgba(255,255,255,0.85)" }}>
                         {st.done}/{st.total} done • {st.pct}%
                       </div>
                     </div>
-                    <div style={{ fontSize: 18, fontWeight: 900 }}>{st.pct}%</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                      {st.pct}%
+                    </div>
                   </div>
 
                   {list.length === 0 ? (
-                    <div style={{ fontSize: 13, opacity: 0.6, padding: 10 }}>
+                    <div style={{ fontSize: 13, opacity: 0.85, padding: 10, color: "rgba(255,255,255,0.8)" }}>
                       No tasks here (with current filters).
                     </div>
                   ) : (
@@ -617,6 +626,7 @@ export default function JourneyTaskBoard() {
                                 flexDirection: "column",
                                 gap: 10,
                                 background: "white",
+                                color: "rgba(0,0,0,0.88)",
                               }}
                             >
                               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>

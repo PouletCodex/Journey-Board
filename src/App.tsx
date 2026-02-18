@@ -595,42 +595,51 @@ export default function JourneyTaskBoard() {
           style={{
             background: "linear-gradient(180deg, #1f1f1f 0%, #151515 100%)",
             borderRadius: 18,
-            padding: 16,
+            padding: "20px 22px",
             boxShadow: "0 12px 28px rgba(0,0,0,0.32)",
             border: "1px solid rgba(255,255,255,0.08)",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            flexWrap: "wrap",
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: 18,
             color: "rgba(255,255,255,0.92)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div>
-              <div style={{ fontSize: 22, fontWeight: 900 }}>Journey Task Board</div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 24, fontWeight: 900 }}>Journey Task Board</div>
               <div style={{ fontSize: 13, opacity: 0.7 }}>
                 Morning / Midday / After Work — tick tasks, add comments, track progress.
               </div>
             </div>
-            <div
-              style={{
-                padding: "8px 12px",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
-                {streakDays}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                  {streakDays}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>day streak</div>
               </div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>day streak</div>
-            </div>
-            <div style={{ color: "rgba(255,255,255,0.75)" }}>
-              <ProgressRing value={globalProgress} />
+              <div style={{ color: "rgba(255,255,255,0.75)" }}>
+                <ProgressRing value={globalProgress} />
+              </div>
             </div>
           </div>
 

@@ -792,21 +792,43 @@ export default function JourneyTaskBoard() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                           {list.map((t) => (
                             <SortableTaskCard key={t.id} id={t.id}>
+                            <div
+                              style={{
+                                border: t.done
+                                  ? "1px solid rgba(255,255,255,0.08)"
+                                  : "1px solid rgba(255,120,120,0.35)",
+                                borderRadius: 16,
+                                padding: 12,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 10,
+                                background: t.done
+                                  ? "linear-gradient(180deg, rgba(36,36,36,0.98) 0%, rgba(22,22,22,0.98) 100%)"
+                                  : "linear-gradient(180deg, rgba(46,26,26,0.98) 0%, rgba(26,16,16,0.98) 100%)",
+                                color: "rgba(255,255,255,0.88)",
+                                boxShadow: t.done
+                                  ? "0 12px 26px rgba(0,0,0,0.35)"
+                                  : "0 14px 30px rgba(120,40,40,0.25)",
+                                position: "relative",
+                              }}
+                            >
                               <div
+                                aria-hidden="true"
                                 style={{
-                                  border: "1px solid rgba(255,255,255,0.08)",
-                                  borderRadius: 16,
-                                  padding: 12,
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: 10,
-                                  background:
-                                    "linear-gradient(180deg, rgba(36,36,36,0.98) 0%, rgba(22,22,22,0.98) 100%)",
-                                  color: "rgba(255,255,255,0.88)",
-                                  boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
+                                  position: "absolute",
+                                  left: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  width: 6,
+                                  borderTopLeftRadius: 16,
+                                  borderBottomLeftRadius: 16,
+                                  background: t.done
+                                    ? "linear-gradient(180deg, rgba(34,197,94,0.6) 0%, rgba(22,163,74,0.4) 100%)"
+                                    : "linear-gradient(180deg, rgba(239,68,68,0.8) 0%, rgba(185,28,28,0.6) 100%)",
+                                  opacity: t.done ? 0.45 : 0.9,
                                 }}
-                              >
-                                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                              />
+                              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                                 <input
                                   type="checkbox"
                                   checked={t.done}
@@ -847,12 +869,26 @@ export default function JourneyTaskBoard() {
                                         </span>
                                       ) : null}
 
-                                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                                        {t.done ? <IconCheck /> : <IconX />}
-                                        <span style={{ fontSize: 12, opacity: 0.75 }}>
-                                          {t.done ? "Completed" : "Not done"}
-                                        </span>
+                                    <span
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 6,
+                                        padding: "2px 8px",
+                                        borderRadius: 999,
+                                        background: t.done
+                                          ? "rgba(34,197,94,0.12)"
+                                          : "rgba(239,68,68,0.14)",
+                                        border: t.done
+                                          ? "1px solid rgba(34,197,94,0.25)"
+                                          : "1px solid rgba(239,68,68,0.3)",
+                                      }}
+                                    >
+                                      {t.done ? <IconCheck /> : <IconX />}
+                                      <span style={{ fontSize: 12, opacity: 0.75 }}>
+                                        {t.done ? "Completed" : "Not done"}
                                       </span>
+                                    </span>
                                     </div>
 
                                     {t.comment ? (

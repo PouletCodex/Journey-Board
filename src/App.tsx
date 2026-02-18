@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   DndContext,
@@ -275,6 +275,7 @@ export default function JourneyTaskBoard() {
   const [eventTime, setEventTime] = useState("09:00");
   const [headerTitle, setHeaderTitle] = useState("Journey Task Board");
   const [editingHeader, setEditingHeader] = useState(false);
+  const headerTitleRef = useRef<HTMLSpanElement | null>(null);
   const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>({
     Morning: "Morning",
     Midday: "Midday",
@@ -994,19 +995,15 @@ export default function JourneyTaskBoard() {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span
+                ref={headerTitleRef}
                 contentEditable={editingHeader}
                 suppressContentEditableWarning
                 onClick={() => setEditingHeader(true)}
-                onInput={(e) => {
-                  if (editingHeader) {
-                    setHeaderTitle((e.currentTarget.textContent ?? "").trim());
-                  }
-                }}
-                onBlur={() => saveHeaderTitle()}
+                onBlur={() => saveHeaderTitle(headerTitleRef.current?.textContent ?? "")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    saveHeaderTitle();
+                    saveHeaderTitle(headerTitleRef.current?.textContent ?? "");
                   }
                   if (e.key === "Escape") {
                     e.preventDefault();

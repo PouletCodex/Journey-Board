@@ -807,12 +807,18 @@ export default function JourneyTaskBoard() {
                                 }}
                               >
                                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={t.done}
-                                    onChange={() => toggleDone(t.id)}
-                                    style={{ marginTop: 4 }}
-                                  />
+                                <input
+                                  type="checkbox"
+                                  checked={t.done}
+                                  onChange={() => toggleDone(t.id)}
+                                  style={{
+                                    marginTop: 4,
+                                    width: 20,
+                                    height: 20,
+                                    accentColor: t.done ? "#22c55e" : "#ef4444",
+                                    cursor: "pointer",
+                                  }}
+                                />
 
                                   <div style={{ flex: 1 }}>
                                     <div

@@ -544,10 +544,10 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "9px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(255,0,0,0.25)",
-                background: "rgba(230,230,230,0.92)",
+                border: "1px solid rgba(255,90,90,0.45)",
+                background: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
                 cursor: "pointer",
-                color: "rgb(220, 38, 38)",
+                color: "rgba(255,225,225,0.95)",
                 fontWeight: 700,
               }}
             >
@@ -707,13 +707,13 @@ export default function JourneyTaskBoard() {
                                   <button
                                     onClick={() => removeTask(t.id)}
                                     style={{
-                                      border: "1px solid rgba(255,0,0,0.25)",
-                                      background: "rgba(230,230,230,0.92)",
+                                      border: "1px solid rgba(255,90,90,0.45)",
+                                      background: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
                                       borderRadius: 10,
                                       padding: "6px 10px",
                                       cursor: "pointer",
                                       fontWeight: 700,
-                                      color: "rgb(220, 38, 38)",
+                                      color: "rgba(255,225,225,0.95)",
                                     }}
                                   >
                                     Delete

@@ -238,6 +238,7 @@ export default function JourneyTaskBoard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
+  const [activeView, setActiveView] = useState<"board" | "summary">("board");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -318,6 +319,38 @@ export default function JourneyTaskBoard() {
     const done = filteredTasks.filter((t) => t.done).length;
     return pct(done, total);
   }, [filteredTasks]);
+
+  const summaryStats = useMemo(() => {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayOfWeek = (now.getDay() + 6) % 7;
+    const startOfWeek = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - dayOfWeek
+    ).getTime();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    function buildStats(fromTs: number) {
+      const list = tasks.filter((t) => t.createdAt >= fromTs);
+      const total = list.length;
+      const done = list.filter((t) => t.done).length;
+      const notDone = total - done;
+      const bySection = sections.map((s) => {
+        const sectionList = list.filter((t) => t.section === s);
+        const sectionTotal = sectionList.length;
+        const sectionDone = sectionList.filter((t) => t.done).length;
+        return { section: s, total: sectionTotal, done: sectionDone };
+      });
+      return { total, done, notDone, pct: pct(done, total), bySection };
+    }
+
+    return {
+      day: buildStats(startOfDay),
+      week: buildStats(startOfWeek),
+      month: buildStats(startOfMonth),
+    };
+  }, [tasks, sections]);
 
   function openCreate() {
     setEditingId(null);
@@ -473,7 +506,7 @@ export default function JourneyTaskBoard() {
             fontSize: "min(78vw, 78vh)",
             fontWeight: 900,
             letterSpacing: "0.08em",
-            color: "rgba(255,255,255,0.32)",
+            color: "rgba(255,255,255,0.45)",
             transform: "translateY(4vh)",
             userSelect: "none",
           }}
@@ -521,6 +554,52 @@ export default function JourneyTaskBoard() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                gap: 6,
+                padding: 4,
+                borderRadius: 12,
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.04)",
+              }}
+            >
+              <button
+                onClick={() => setActiveView("board")}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background:
+                    activeView === "board"
+                      ? "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)"
+                      : "transparent",
+                  color: "rgba(255,255,255,0.9)",
+                  borderRadius: 10,
+                  padding: "7px 12px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                Board
+              </button>
+              <button
+                onClick={() => setActiveView("summary")}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background:
+                    activeView === "summary"
+                      ? "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)"
+                      : "transparent",
+                  color: "rgba(255,255,255,0.9)",
+                  borderRadius: 10,
+                  padding: "7px 12px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                Summary
+              </button>
+            </div>
+
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
@@ -594,182 +673,267 @@ export default function JourneyTaskBoard() {
           </div>
         </div>
 
-        {/* Board */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
+        {activeView === "board" ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: 16,
+                alignItems: "start",
+              }}
+            >
+              {sections.map((s) => {
+                const list = filteredTasks.filter((t) => t.section === s);
+                const st = sectionStats[s];
+
+                return (
+                  <div
+                    key={s}
+                    style={{
+                      background: sectionBackgrounds[s],
+                      borderRadius: 18,
+                      padding: 12,
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      boxShadow: "0 8px 22px rgba(0,0,0,0.05)",
+                      display: "flex",
+                      flexDirection: "column",
+                      minHeight: "clamp(420px, 68dvh, 760px)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                          {sectionLabel(s)}
+                        </div>
+                        <div style={{ fontSize: 13, opacity: 0.85, color: "rgba(255,255,255,0.85)" }}>
+                          {st.done}/{st.total} done • {st.pct}%
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                        {st.pct}%
+                      </div>
+                    </div>
+
+                    {list.length === 0 ? (
+                      <div style={{ fontSize: 13, opacity: 0.85, padding: 10, color: "rgba(255,255,255,0.8)" }}>
+                        No tasks here (with current filters).
+                      </div>
+                    ) : (
+                      <SortableContext
+                        items={list.map((t) => t.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                          {list.map((t) => (
+                            <SortableTaskCard key={t.id} id={t.id}>
+                              <div
+                                style={{
+                                  border: "1px solid rgba(255,255,255,0.08)",
+                                  borderRadius: 16,
+                                  padding: 12,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 10,
+                                  background:
+                                    "linear-gradient(180deg, rgba(36,36,36,0.98) 0%, rgba(22,22,22,0.98) 100%)",
+                                  color: "rgba(255,255,255,0.88)",
+                                  boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={t.done}
+                                    onChange={() => toggleDone(t.id)}
+                                    style={{ marginTop: 4 }}
+                                  />
+
+                                  <div style={{ flex: 1 }}>
+                                    <div
+                                      style={{
+                                        fontWeight: 800,
+                                        textDecoration: t.done ? "line-through" : "none",
+                                        opacity: t.done ? 0.65 : 1,
+                                      }}
+                                    >
+                                      {t.title}
+                                    </div>
+
+                                    <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                                      {t.category ? (
+                                        <span
+                                          style={{
+                                            fontSize: 12,
+                                            padding: "3px 8px",
+                                            borderRadius: 999,
+                                            border: "1px solid rgba(255,255,255,0.12)",
+                                            background: "rgba(255,255,255,0.06)",
+                                            opacity: 0.9,
+                                          }}
+                                        >
+                                          {t.category}
+                                        </span>
+                                      ) : null}
+
+                                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                        {t.done ? <IconCheck /> : <IconX />}
+                                        <span style={{ fontSize: 12, opacity: 0.75 }}>
+                                          {t.done ? "Completed" : "Not done"}
+                                        </span>
+                                      </span>
+                                    </div>
+
+                                    {t.comment ? (
+                                      <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
+                                        💬 {t.comment}
+                                      </div>
+                                    ) : (
+                                      <div style={{ marginTop: 8, fontSize: 13, opacity: 0.5 }}>
+                                        💬 No comment
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                    <button
+                                      onClick={() => openEdit(t)}
+                                      style={{
+                                        border: "1px solid rgba(255,255,255,0.12)",
+                                        background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
+                                        borderRadius: 10,
+                                        padding: "6px 10px",
+                                        cursor: "pointer",
+                                        fontWeight: 700,
+                                        color: "rgba(240,240,240,0.95)",
+                                      }}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => removeTask(t.id)}
+                                      style={{
+                                        border: "1px solid rgba(255,90,90,0.45)",
+                                        background: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
+                                        borderRadius: 10,
+                                        padding: "6px 10px",
+                                        cursor: "pointer",
+                                        fontWeight: 700,
+                                        color: "rgba(255,225,225,0.95)",
+                                      }}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </SortableTaskCard>
+                          ))}
+                        </div>
+                      </SortableContext>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </DndContext>
+        ) : (
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
               gap: 16,
-              alignItems: "start",
             }}
           >
-            {sections.map((s) => {
-              const list = filteredTasks.filter((t) => t.section === s);
-              const st = sectionStats[s];
-
-              return (
-                <div
-                  key={s}
-                  style={{
-                    background: sectionBackgrounds[s],
-                    borderRadius: 18,
-                    padding: 12,
-                    border: "1px solid rgba(0,0,0,0.06)",
-                    boxShadow: "0 8px 22px rgba(0,0,0,0.05)",
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "clamp(420px, 68dvh, 760px)",
-                  }}
-                >
+            {(
+              [
+                { key: "day", label: "Today", data: summaryStats.day },
+                { key: "week", label: "This Week", data: summaryStats.week },
+                { key: "month", label: "This Month", data: summaryStats.month },
+              ] as const
+            ).map((p) => (
+              <div
+                key={p.key}
+                style={{
+                  background: "linear-gradient(180deg, rgba(28,28,28,0.98) 0%, rgba(16,16,16,0.98) 100%)",
+                  borderRadius: 18,
+                  padding: 16,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
+                  color: "rgba(255,255,255,0.9)",
+                  minHeight: 260,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 900 }}>{p.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900 }}>{p.data.pct}%</div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      marginBottom: 10,
+                      padding: 10,
+                      borderRadius: 12,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.08)",
                     }}
                   >
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
-                        {sectionLabel(s)}
-                      </div>
-                      <div style={{ fontSize: 13, opacity: 0.85, color: "rgba(255,255,255,0.85)" }}>
-                        {st.done}/{st.total} done • {st.pct}%
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
-                      {st.pct}%
-                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>Done</div>
+                    <div style={{ fontSize: 20, fontWeight: 800 }}>{p.data.done}</div>
                   </div>
-
-                  {list.length === 0 ? (
-                    <div style={{ fontSize: 13, opacity: 0.85, padding: 10, color: "rgba(255,255,255,0.8)" }}>
-                      No tasks here (with current filters).
-                    </div>
-                  ) : (
-                    <SortableContext
-                      items={list.map((t) => t.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        {list.map((t) => (
-                          <SortableTaskCard key={t.id} id={t.id}>
-                            <div
-                              style={{
-                                border: "1px solid rgba(255,255,255,0.08)",
-                                borderRadius: 16,
-                                padding: 12,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 10,
-                                background:
-                                  "linear-gradient(180deg, rgba(36,36,36,0.98) 0%, rgba(22,22,22,0.98) 100%)",
-                                color: "rgba(255,255,255,0.88)",
-                                boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
-                              }}
-                            >
-                              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                                <input
-                                  type="checkbox"
-                                  checked={t.done}
-                                  onChange={() => toggleDone(t.id)}
-                                  style={{ marginTop: 4 }}
-                                />
-
-                                <div style={{ flex: 1 }}>
-                                  <div
-                                    style={{
-                                      fontWeight: 800,
-                                      textDecoration: t.done ? "line-through" : "none",
-                                      opacity: t.done ? 0.65 : 1,
-                                    }}
-                                  >
-                                    {t.title}
-                                  </div>
-
-                                  <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-                                    {t.category ? (
-                                      <span
-                                        style={{
-                                          fontSize: 12,
-                                          padding: "3px 8px",
-                                          borderRadius: 999,
-                                          border: "1px solid rgba(255,255,255,0.12)",
-                                          background: "rgba(255,255,255,0.06)",
-                                          opacity: 0.9,
-                                        }}
-                                      >
-                                        {t.category}
-                                      </span>
-                                    ) : null}
-
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                                      {t.done ? <IconCheck /> : <IconX />}
-                                      <span style={{ fontSize: 12, opacity: 0.75 }}>
-                                        {t.done ? "Completed" : "Not done"}
-                                      </span>
-                                    </span>
-                                  </div>
-
-                                  {t.comment ? (
-                                    <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
-                                      💬 {t.comment}
-                                    </div>
-                                  ) : (
-                                    <div style={{ marginTop: 8, fontSize: 13, opacity: 0.5 }}>
-                                      💬 No comment
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                  <button
-                                    onClick={() => openEdit(t)}
-                                    style={{
-                                      border: "1px solid rgba(255,255,255,0.12)",
-                                      background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
-                                      borderRadius: 10,
-                                      padding: "6px 10px",
-                                      cursor: "pointer",
-                                      fontWeight: 700,
-                                      color: "rgba(240,240,240,0.95)",
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => removeTask(t.id)}
-                                    style={{
-                                      border: "1px solid rgba(255,90,90,0.45)",
-                                      background: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
-                                      borderRadius: 10,
-                                      padding: "6px 10px",
-                                      cursor: "pointer",
-                                      fontWeight: 700,
-                                      color: "rgba(255,225,225,0.95)",
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </SortableTaskCard>
-                        ))}
-                      </div>
-                    </SortableContext>
-                  )}
+                  <div
+                    style={{
+                      padding: 10,
+                      borderRadius: 12,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>Not done</div>
+                    <div style={{ fontSize: 20, fontWeight: 800 }}>{p.data.notDone}</div>
+                  </div>
                 </div>
-              );
-            })}
+                <div
+                  style={{
+                    padding: 12,
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>By section</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {p.data.bySection.map((row) => (
+                      <div
+                        key={row.section}
+                        style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}
+                      >
+                        <span>{sectionLabel(row.section)}</span>
+                        <span>
+                          {row.done}/{row.total}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </DndContext>
+        )}
 
         <Modal
           open={modalOpen}

@@ -171,6 +171,7 @@ function Modal({
           padding: 22,
           border: "1px solid rgba(255,255,255,0.08)",
           color: "rgba(255,255,255,0.9)",
+          boxSizing: "border-box",
         }}
       >
         <div
@@ -789,6 +790,7 @@ export default function JourneyTaskBoard() {
                   border: "1px solid rgba(255,255,255,0.12)",
                   background: "rgba(255,255,255,0.06)",
                   color: "rgba(255,255,255,0.92)",
+                  boxSizing: "border-box",
                 }}
               />
             </div>
@@ -805,6 +807,7 @@ export default function JourneyTaskBoard() {
                   border: "1px solid rgba(255,255,255,0.12)",
                   background: "rgba(255,255,255,0.06)",
                   color: "rgba(255,255,255,0.92)",
+                  boxSizing: "border-box",
                 }}
               >
                 <option value="Morning">Morning</option>
@@ -826,6 +829,7 @@ export default function JourneyTaskBoard() {
                   border: "1px solid rgba(255,255,255,0.12)",
                   background: "rgba(255,255,255,0.06)",
                   color: "rgba(255,255,255,0.92)",
+                  boxSizing: "border-box",
                 }}
               />
             </div>
@@ -845,6 +849,7 @@ export default function JourneyTaskBoard() {
                   background: "rgba(255,255,255,0.06)",
                   color: "rgba(255,255,255,0.92)",
                   resize: "vertical",
+                  boxSizing: "border-box",
                 }}
               />
             </div>

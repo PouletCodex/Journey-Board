@@ -436,18 +436,21 @@ export default function JourneyTaskBoard() {
   return (
     <div
       style={{
-        padding: 18,
+        padding: "22px clamp(12px, 2.2vw, 30px)",
         fontFamily:
           'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial',
         color: "rgba(0,0,0,0.88)",
         background: "rgba(145, 116, 117, 0.24)",
-        minHeight: "100vh",
+        minHeight: "100dvh",
+        width: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden",
       }}
     >
       <div
         style={{
           width: "100%",
-          padding: "0 24px",
+          padding: 0,
           display: "flex",
           flexDirection: "column",
           gap: 14,
@@ -561,8 +564,9 @@ export default function JourneyTaskBoard() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: 12,
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 16,
+              alignItems: "start",
             }}
           >
             {sections.map((s) => {
@@ -580,7 +584,7 @@ export default function JourneyTaskBoard() {
                     boxShadow: "0 8px 22px rgba(0,0,0,0.05)",
                     display: "flex",
                     flexDirection: "column",
-                    minHeight: 360,
+                    minHeight: "clamp(420px, 68dvh, 760px)",
                   }}
                 >
                   <div
@@ -820,6 +824,7 @@ export default function JourneyTaskBoard() {
                   padding: "10px 12px",
                   cursor: "pointer",
                   fontWeight: 800,
+                  
                 }}
               >
                 {editingId ? "Save" : "Create"}
@@ -835,7 +840,10 @@ export default function JourneyTaskBoard() {
 
       <style>
         {`
-          @media (max-width: 980px) {
+          @media (max-width: 1300px) {
+            div[style*="grid-template-columns: repeat(3"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          }
+          @media (max-width: 860px) {
             div[style*="grid-template-columns: repeat(3"] { grid-template-columns: 1fr !important; }
           }
         `}

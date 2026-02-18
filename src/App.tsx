@@ -97,36 +97,44 @@ function IconCheck() {
 }
 
 function ProgressRing({ value }: { value: number }) {
-  const r = 22;
+  const hue = Math.round(8 + (Math.max(0, Math.min(100, value)) / 100) * 120);
+  const progColor = `hsl(${hue} 75% 55%)`;
+  const r = 45;
   const c = 2 * Math.PI * r;
   const dash = (value / 100) * c;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <svg width="56" height="56" viewBox="0 0 56 56">
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <svg width="124" height="124" viewBox="0 0 124 124">
         <circle
-          cx="28"
-          cy="28"
+          cx="62"
+          cy="62"
           r={r}
           stroke="rgba(0,0,0,0.10)"
-          strokeWidth="6"
+          strokeWidth="8"
           fill="none"
         />
         <circle
-          cx="28"
-          cy="28"
+          cx="62"
+          cy="62"
           r={r}
-          stroke="currentColor"
-          strokeWidth="6"
+          stroke={progColor}
+          strokeWidth="8"
           fill="none"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${c - dash}`}
-          transform="rotate(-90 28 28)"
+          transform="rotate(-90 62 62)"
         />
+        <text
+          x="62"
+          y="66"
+          textAnchor="middle"
+          fontSize="20"
+          fontWeight="800"
+          fill={progColor}
+        >
+          {value}
+        </text>
       </svg>
-      <div>
-        <div style={{ fontSize: 14, opacity: 0.7 }}>Global progress</div>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>{value}%</div>
-      </div>
     </div>
   );
 }
@@ -762,8 +770,22 @@ export default function JourneyTaskBoard() {
             alignItems: "stretch",
             gap: 18,
             color: theme.headerText,
+            position: "relative",
           }}
         >
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              color: theme.ringColor,
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          >
+            <ProgressRing value={globalProgress} />
+          </div>
           <div
             style={{
               display: "flex",
@@ -771,6 +793,8 @@ export default function JourneyTaskBoard() {
               justifyContent: "space-between",
               gap: 16,
               flexWrap: "wrap",
+              position: "relative",
+              zIndex: 1,
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -796,13 +820,19 @@ export default function JourneyTaskBoard() {
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.8 }}>day streak</div>
               </div>
-              <div style={{ color: theme.ringColor }}>
-                <ProgressRing value={globalProgress} />
-              </div>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
             <button
               onClick={() => setMenuOpen(true)}
               style={{

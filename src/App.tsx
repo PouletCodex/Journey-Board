@@ -445,32 +445,61 @@ export default function JourneyTaskBoard() {
     const activeId = String(active.id);
     const overId = String(over.id);
 
-    const activeTask = tasks.find((t) => t.id === activeId);
-    const overTask = tasks.find((t) => t.id === overId);
-    if (!activeTask || !overTask) return;
+    setTasks((prev) => {
+      const activeTask = prev.find((t) => t.id === activeId);
+      const overTask = prev.find((t) => t.id === overId);
+      if (!activeTask || !overTask) return prev;
 
-    // simple: réordonne seulement dans la même section
-    if (activeTask.section !== overTask.section) return;
+      const sourceSection = activeTask.section;
+      const targetSection = overTask.section;
 
-    const section = activeTask.section;
+      const sourceTasks = prev
+        .filter((t) => t.section === sourceSection)
+        .sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
+      const targetTasks = prev
+        .filter((t) => t.section === targetSection)
+        .sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
 
-    const sectionTasks = tasks
-      .filter((t) => t.section === section)
-      .sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
+      if (sourceSection === targetSection) {
+        const oldIndex = sourceTasks.findIndex((t) => t.id === activeId);
+        const newIndex = sourceTasks.findIndex((t) => t.id === overId);
+        if (oldIndex === -1 || newIndex === -1) return prev;
 
-    const oldIndex = sectionTasks.findIndex((t) => t.id === activeId);
-    const newIndex = sectionTasks.findIndex((t) => t.id === overId);
-    if (oldIndex === -1 || newIndex === -1) return;
+        const moved = arrayMove(sourceTasks, oldIndex, newIndex);
+        const orderMap = new Map<string, number>();
+        moved.forEach((t, idx) => orderMap.set(t.id, idx));
 
-    const moved = arrayMove(sectionTasks, oldIndex, newIndex);
-    const orderMap = new Map<string, number>();
-    moved.forEach((t, idx) => orderMap.set(t.id, idx));
+        return prev.map((t) =>
+          t.section === sourceSection ? { ...t, order: orderMap.get(t.id) ?? 0 } : t
+        );
+      }
 
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.section === section ? { ...t, order: orderMap.get(t.id) ?? 0 } : t
-      )
-    );
+      const sourceIndex = sourceTasks.findIndex((t) => t.id === activeId);
+      const targetIndex = targetTasks.findIndex((t) => t.id === overId);
+      if (sourceIndex === -1 || targetIndex === -1) return prev;
+
+      const nextSource = sourceTasks.filter((t) => t.id !== activeId);
+      const nextTarget = [...targetTasks];
+      nextTarget.splice(targetIndex, 0, { ...activeTask, section: targetSection });
+
+      const orderMap = new Map<string, number>();
+      nextSource.forEach((t, idx) => orderMap.set(t.id, idx));
+      nextTarget.forEach((t, idx) => orderMap.set(t.id, idx));
+
+      return prev.map((t) => {
+        if (t.id === activeId) {
+          return {
+            ...t,
+            section: targetSection,
+            order: orderMap.get(t.id) ?? 0,
+          };
+        }
+        if (t.section === sourceSection || t.section === targetSection) {
+          return { ...t, order: orderMap.get(t.id) ?? t.order ?? 0 };
+        }
+        return t;
+      });
+    });
   }
 
   return (

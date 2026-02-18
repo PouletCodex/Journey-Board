@@ -694,12 +694,13 @@ export default function JourneyTaskBoard() {
                                   <button
                                     onClick={() => openEdit(t)}
                                     style={{
-                                      border: "1px solid rgba(0,0,0,0.12)",
-                                      background: "rgba(230,230,230,0.92)",
+                                      border: "1px solid rgba(255,255,255,0.12)",
+                                      background: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
                                       borderRadius: 10,
                                       padding: "6px 10px",
                                       cursor: "pointer",
                                       fontWeight: 700,
+                                      color: "rgba(240,240,240,0.95)",
                                     }}
                                   >
                                     Edit

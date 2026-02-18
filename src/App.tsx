@@ -352,6 +352,35 @@ export default function JourneyTaskBoard() {
     };
   }, [tasks, sections]);
 
+  const streakDays = useMemo(() => {
+    if (tasks.length === 0) return 0;
+
+    const byDay = new Map<string, { total: number; done: number }>();
+    for (const t of tasks) {
+      const d = new Date(t.createdAt);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const entry = byDay.get(key) ?? { total: 0, done: 0 };
+      entry.total += 1;
+      if (t.done) entry.done += 1;
+      byDay.set(key, entry);
+    }
+
+    const today = new Date();
+    const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+    let streak = 0;
+    let cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    while (true) {
+      const key = dayKey(cursor);
+      const entry = byDay.get(key);
+      if (!entry || entry.total === 0 || entry.done !== entry.total) break;
+      streak += 1;
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - 1);
+    }
+
+    return streak;
+  }, [tasks]);
+
   function openCreate() {
     setEditingId(null);
     setFormTitle("");
@@ -583,6 +612,22 @@ export default function JourneyTaskBoard() {
               <div style={{ fontSize: 13, opacity: 0.7 }}>
                 Morning / Midday / After Work — tick tasks, add comments, track progress.
               </div>
+            </div>
+            <div
+              style={{
+                padding: "8px 12px",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontSize: 18, fontWeight: 900, color: "rgba(255,255,255,0.95)" }}>
+                {streakDays}
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.8 }}>day streak</div>
             </div>
             <div style={{ color: "rgba(255,255,255,0.75)" }}>
               <ProgressRing value={globalProgress} />

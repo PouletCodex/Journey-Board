@@ -20,6 +20,18 @@ import { CSS } from "@dnd-kit/utilities";
 
 type Section = "Morning" | "Midday" | "AfterWork";
 
+type ThemeName = "Dark Glass" | "Dark Matte" | "Light";
+type ThemeTokens = {
+  bg: string;
+  panel: string;
+  column: string;
+  card: string;
+  border: string;
+  text: string;
+  muted: string;
+  blur: string;
+};
+
 type Task = {
   id: string;
   title: string;
@@ -29,6 +41,39 @@ type Task = {
   comment?: string;
   createdAt: number;
   order?: number;
+};
+
+const THEMES: Record<ThemeName, ThemeTokens> = {
+  "Dark Glass": {
+    bg: "linear-gradient(160deg, #0c0f14 0%, #0a0c10 50%, #11151d 100%)",
+    panel: "rgba(18, 22, 28, 0.72)",
+    column: "rgba(18, 22, 28, 0.58)",
+    card: "rgba(20, 24, 30, 0.75)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    text: "rgba(245,245,245,0.95)",
+    muted: "rgba(245,245,245,0.6)",
+    blur: "blur(14px)",
+  },
+  "Dark Matte": {
+    bg: "linear-gradient(160deg, #0f1116 0%, #0b0d12 100%)",
+    panel: "#14171d",
+    column: "#161a21",
+    card: "#1a1f27",
+    border: "1px solid rgba(255,255,255,0.06)",
+    text: "rgba(245,245,245,0.95)",
+    muted: "rgba(245,245,245,0.6)",
+    blur: "none",
+  },
+  Light: {
+    bg: "linear-gradient(160deg, #f3f4f7 0%, #e6e8ee 100%)",
+    panel: "rgba(255,255,255,0.8)",
+    column: "rgba(250,250,252,0.9)",
+    card: "rgba(255,255,255,0.95)",
+    border: "1px solid rgba(0,0,0,0.08)",
+    text: "rgba(20,20,20,0.92)",
+    muted: "rgba(20,20,20,0.6)",
+    blur: "none",
+  },
 };
 
 type CalendarEvent = {
@@ -104,7 +149,13 @@ function IconCheck() {
   );
 }
 
-function ProgressRing({ value }: { value: number }) {
+function ProgressRing({
+  value,
+  trackColor,
+}: {
+  value: number;
+  trackColor: string;
+}) {
   const hue = Math.round(8 + (Math.max(0, Math.min(100, value)) / 100) * 120);
   const progColor = `hsl(${hue} 75% 55%)`;
   const r = 45;
@@ -117,7 +168,7 @@ function ProgressRing({ value }: { value: number }) {
           cx="62"
           cy="62"
           r={r}
-          stroke="rgba(0,0,0,0.10)"
+          stroke={trackColor}
           strokeWidth="8"
           fill="none"
         />
@@ -158,16 +209,10 @@ function Modal({
   title: string;
   children: React.ReactNode;
   onClose: () => void;
-  theme: {
-    modalBg: string;
-    modalBorder: string;
-    modalText: string;
-    neutralBtnBg: string;
-    neutralBtnBorder: string;
-    neutralBtnText: string;
-  };
+  theme: ThemeTokens;
 }) {
   if (!open) return null;
+  const T = theme;
   return (
     <div
       role="dialog"
@@ -190,13 +235,15 @@ function Modal({
       <div
         style={{
           width: "min(860px, 94vw)",
-          background: theme.modalBg,
+          background: T.panel,
           borderRadius: 20,
           boxShadow: "0 24px 64px rgba(0,0,0,0.45)",
           padding: 22,
-            border: theme.modalBorder,
-            color: theme.modalText,
+          border: T.border,
+          color: T.text,
           boxSizing: "border-box",
+          backdropFilter: T.blur,
+          WebkitBackdropFilter: T.blur,
         }}
       >
         <div
@@ -214,13 +261,15 @@ function Modal({
           <button
             onClick={onClose}
             style={{
-              border: theme.neutralBtnBorder,
-              background: theme.neutralBtnBg,
+              border: T.border,
+              background: T.panel,
               borderRadius: 10,
               padding: "7px 12px",
               cursor: "pointer",
-              color: theme.neutralBtnText,
+              color: T.text,
               fontWeight: 700,
+              backdropFilter: T.blur,
+              WebkitBackdropFilter: T.blur,
             }}
           >
             Close
@@ -264,7 +313,7 @@ export default function JourneyTaskBoard() {
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<"board" | "summary" | "settings" | "calendar">("board");
-  const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
+  const [themeName, setThemeName] = useState<ThemeName>("Dark Glass");
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedDays, setCompletedDays] = useState<string[]>([]);
   const [calendarOffset, setCalendarOffset] = useState(0);
@@ -362,8 +411,10 @@ export default function JourneyTaskBoard() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("journey_theme_mode");
-      if (saved === "dark" || saved === "light") setThemeMode(saved);
+      const saved = localStorage.getItem("journey_theme");
+      if (saved && Object.keys(THEMES).includes(saved)) {
+        setThemeName(saved as ThemeName);
+      }
     } catch {
       // ignore
     }
@@ -380,11 +431,11 @@ export default function JourneyTaskBoard() {
 
   useEffect(() => {
     try {
-      localStorage.setItem("journey_theme_mode", themeMode);
+      localStorage.setItem("journey_theme", themeName);
     } catch {
       // ignore
     }
-  }, [themeMode]);
+  }, [themeName]);
 
   useEffect(() => {
     try {
@@ -417,22 +468,6 @@ export default function JourneyTaskBoard() {
       // ignore
     }
   }, [sectionTitles]);
-  const danger = useMemo(() => {
-    if (themeMode === "light") {
-      return {
-        bg: "linear-gradient(180deg, rgba(210,70,70,0.95) 0%, rgba(170,40,40,0.98) 100%)",
-        border: "1px solid rgba(160,30,30,0.45)",
-        text: "rgba(255,245,245,0.98)",
-      } as const;
-    }
-
-    return {
-      bg: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
-      border: "1px solid rgba(255,90,90,0.45)",
-      text: "rgba(255,225,225,0.95)",
-    } as const;
-  }, [themeMode]);
-
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const t of tasks) if (t.category?.trim()) set.add(t.category.trim());
@@ -440,81 +475,19 @@ export default function JourneyTaskBoard() {
   }, [tasks]);
 
   const sections: Section[] = ["Morning", "Midday", "AfterWork"];
-  const theme = useMemo(() => {
-    if (themeMode === "light") {
-      return {
-        pageBg: "rgba(220, 224, 230, 0.75)",
-        headerBg: "linear-gradient(180deg, #e7e9ee 0%, #d9dde4 100%)",
-        headerBorder: "1px solid rgba(0,0,0,0.08)",
-        headerShadow: "0 12px 26px rgba(0,0,0,0.14)",
-        headerText: "rgba(18,18,18,0.9)",
-        headerSubtext: "rgba(18,18,18,0.6)",
-        chipBg: "rgba(0,0,0,0.05)",
-        chipBorder: "1px solid rgba(0,0,0,0.14)",
-        chipText: "rgba(18,18,18,0.88)",
-        ringColor: "rgba(0,0,0,0.65)",
-        selectBg: "linear-gradient(180deg, #e6e7eb 0%, #d6d9df 100%)",
-        selectBorder: "1px solid rgba(0,0,0,0.18)",
-        selectText: "rgba(18,18,18,0.9)",
-        primaryBtnBg: "linear-gradient(180deg, #2c2f36 0%, #1d2026 100%)",
-        neutralBtnBg: "linear-gradient(180deg, #e2e4ea 0%, #d4d8e0 100%)",
-        neutralBtnBorder: "1px solid rgba(0,0,0,0.18)",
-        neutralBtnText: "rgba(18,18,18,0.9)",
-        cardBg: "linear-gradient(180deg, rgba(238,240,244,0.98) 0%, rgba(226,229,236,0.98) 100%)",
-        cardBorder: "1px solid rgba(0,0,0,0.12)",
-        cardText: "rgba(18,18,18,0.9)",
-        badgeBg: "rgba(0,0,0,0.05)",
-        badgeBorder: "1px solid rgba(0,0,0,0.18)",
-        modalBg: "linear-gradient(180deg, rgba(240,242,246,0.98) 0%, rgba(226,229,236,0.98) 100%)",
-        modalBorder: "1px solid rgba(0,0,0,0.12)",
-        modalText: "rgba(18,18,18,0.92)",
-        inputBg: "rgba(248,249,251,0.96)",
-        inputBorder: "1px solid rgba(0,0,0,0.2)",
-      } as const;
-    }
-
-    return {
-      pageBg: "rgba(145, 116, 117, 0.24)",
-      headerBg: "linear-gradient(180deg, #1f1f1f 0%, #151515 100%)",
-      headerBorder: "1px solid rgba(255,255,255,0.08)",
-      headerShadow: "0 12px 28px rgba(0,0,0,0.32)",
-      headerText: "rgba(255,255,255,0.92)",
-      headerSubtext: "rgba(255,255,255,0.7)",
-      chipBg: "rgba(255,255,255,0.06)",
-      chipBorder: "1px solid rgba(255,255,255,0.12)",
-      chipText: "rgba(255,255,255,0.9)",
-      ringColor: "rgba(255,255,255,0.75)",
-      selectBg: "linear-gradient(180deg, rgba(52,52,52,0.95) 0%, rgba(26,26,26,0.98) 100%)",
-      selectBorder: "1px solid rgba(255,255,255,0.16)",
-      selectText: "rgba(240,240,240,0.95)",
-      primaryBtnBg: "linear-gradient(180deg, rgba(72,72,72,0.98) 0%, rgba(36,36,36,0.98) 100%)",
-      neutralBtnBg: "linear-gradient(180deg, rgba(58,58,58,0.95) 0%, rgba(30,30,30,0.98) 100%)",
-      neutralBtnBorder: "1px solid rgba(255,255,255,0.12)",
-      neutralBtnText: "rgba(240,240,240,0.95)",
-      cardBg: "linear-gradient(180deg, rgba(36,36,36,0.98) 0%, rgba(22,22,22,0.98) 100%)",
-      cardBorder: "1px solid rgba(255,255,255,0.08)",
-      cardText: "rgba(255,255,255,0.88)",
-      badgeBg: "rgba(255,255,255,0.06)",
-      badgeBorder: "1px solid rgba(255,255,255,0.12)",
-      modalBg: "linear-gradient(180deg, rgba(30,30,30,0.98) 0%, rgba(18,18,18,0.98) 100%)",
-      modalBorder: "1px solid rgba(255,255,255,0.08)",
-      modalText: "rgba(255,255,255,0.9)",
-      inputBg: "rgba(255,255,255,0.06)",
-      inputBorder: "1px solid rgba(255,255,255,0.12)",
-    } as const;
-  }, [themeMode]);
-  const sectionBackgrounds: Record<Section, string> =
-    themeMode === "light"
-      ? {
-          Morning: "linear-gradient(160deg, #f2f2f2 0%, #dcdcdc 100%)",
-          Midday: "linear-gradient(160deg, #ededed 0%, #d6d6d6 100%)",
-          AfterWork: "linear-gradient(160deg, #e9e9e9 0%, #d0d0d0 100%)",
-        }
-      : {
-          Morning: "linear-gradient(160deg, #1a1a1a 0%, #4a4a4a 100%)",
-          Midday: "linear-gradient(160deg, #121212 0%, #5a5a5a 100%)",
-          AfterWork: "linear-gradient(160deg, #0f0f0f 0%, #3f3f3f 100%)",
-        };
+  const T = THEMES[themeName];
+  const isLight = themeName === "Light";
+  const danger = isLight
+    ? {
+        bg: "linear-gradient(180deg, rgba(210,70,70,0.95) 0%, rgba(170,40,40,0.98) 100%)",
+        border: "1px solid rgba(160,30,30,0.45)",
+        text: "rgba(255,245,245,0.98)",
+      }
+    : {
+        bg: "linear-gradient(180deg, rgba(90,24,24,0.9) 0%, rgba(50,14,14,0.95) 100%)",
+        border: "1px solid rgba(255,90,90,0.45)",
+        text: "rgba(255,225,225,0.95)",
+      };
 
   const filteredTasks = useMemo(() => {
     return tasks
@@ -870,8 +843,8 @@ export default function JourneyTaskBoard() {
         padding: "22px clamp(12px, 2.2vw, 30px)",
         fontFamily:
           'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial',
-        color: theme.headerText,
-        background: theme.pageBg,
+        color: T.text,
+        background: T.bg,
         minHeight: "100dvh",
         width: "100%",
         boxSizing: "border-box",
@@ -897,7 +870,7 @@ export default function JourneyTaskBoard() {
             fontSize: "min(78vw, 78vh)",
             fontWeight: 900,
             letterSpacing: "0.08em",
-            color: "rgba(255,255,255,0.45)",
+            color: T.muted,
             transform: "translateY(4vh)",
             userSelect: "none",
           }}
@@ -923,9 +896,11 @@ export default function JourneyTaskBoard() {
             flexWrap: "wrap",
             padding: 4,
             borderRadius: 12,
-            border: theme.chipBorder,
-            background: theme.chipBg,
+            border: T.border,
+            background: T.panel,
             alignSelf: "flex-start",
+            backdropFilter: T.blur,
+            WebkitBackdropFilter: T.blur,
           }}
         >
           {([
@@ -938,9 +913,9 @@ export default function JourneyTaskBoard() {
               key={t.key}
               onClick={() => setActiveView(t.key)}
               style={{
-                border: theme.chipBorder,
-                background: activeView === t.key ? theme.primaryBtnBg : "transparent",
-                color: theme.chipText,
+                border: T.border,
+                background: activeView === t.key ? T.card : "transparent",
+                color: T.text,
                 borderRadius: 10,
                 padding: "7px 12px",
                 cursor: "pointer",
@@ -956,17 +931,19 @@ export default function JourneyTaskBoard() {
         {/* Header */}
         <div
           style={{
-            background: theme.headerBg,
+            background: T.panel,
             borderRadius: 18,
             padding: "20px 22px",
-            boxShadow: theme.headerShadow,
-            border: theme.headerBorder,
+            boxShadow: "0 12px 28px rgba(0,0,0,0.28)",
+            border: T.border,
             display: "flex",
             flexDirection: "column",
             alignItems: "stretch",
             gap: 18,
-            color: theme.headerText,
+            color: T.text,
             position: "relative",
+            backdropFilter: T.blur,
+            WebkitBackdropFilter: T.blur,
           }}
         >
           <div
@@ -975,12 +952,13 @@ export default function JourneyTaskBoard() {
               left: "50%",
               top: "50%",
               transform: "translate(-50%, -50%)",
-              color: theme.ringColor,
+              color: T.text,
+              opacity: 0.85,
               pointerEvents: "none",
               zIndex: 0,
             }}
           >
-            <ProgressRing value={globalProgress} />
+            <ProgressRing value={globalProgress} trackColor={T.muted} />
           </div>
           <div
             style={{
@@ -1021,7 +999,7 @@ export default function JourneyTaskBoard() {
               >
                 {headerTitle}
               </span>
-              <div style={{ fontSize: 13, opacity: 0.7, color: theme.headerSubtext }}>
+              <div style={{ fontSize: 13, opacity: 0.7, color: T.muted }}>
                 Morning / Midday / After Work — tick tasks, add comments, track progress.
               </div>
             </div>
@@ -1030,14 +1008,16 @@ export default function JourneyTaskBoard() {
                 style={{
                   padding: "8px 12px",
                   borderRadius: 12,
-                  background: theme.chipBg,
-                  border: theme.chipBorder,
+                  background: T.panel,
+                  border: T.border,
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
+                  backdropFilter: T.blur,
+                  WebkitBackdropFilter: T.blur,
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 900, color: theme.chipText }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>
                   {streakDays}
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.8 }}>day streak</div>
@@ -1060,10 +1040,10 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "9px 12px",
                 borderRadius: 12,
-                border: theme.neutralBtnBorder,
-                background: theme.neutralBtnBg,
+                border: T.border,
+                background: T.panel,
                 cursor: "pointer",
-                color: theme.neutralBtnText,
+                color: T.text,
                 fontWeight: 800,
                 letterSpacing: "0.08em",
               }}
@@ -1076,15 +1056,35 @@ export default function JourneyTaskBoard() {
               style={{
                 padding: "9px 12px",
                 borderRadius: 12,
-                border: theme.chipBorder,
-                background: theme.primaryBtnBg,
-                color: theme.chipText,
+                border: T.border,
+                background: T.card,
+                color: T.text,
                 fontWeight: 700,
                 cursor: "pointer",
               }}
             >
               + Add Task
             </button>
+
+            <select
+              value={themeName}
+              onChange={(e) => setThemeName(e.target.value as ThemeName)}
+              style={{
+                padding: "9px 10px",
+                borderRadius: 12,
+                border: T.border,
+                background: T.panel,
+                color: T.text,
+                cursor: "pointer",
+                backdropFilter: T.blur,
+                WebkitBackdropFilter: T.blur,
+              }}
+              aria-label="Theme"
+            >
+              <option value="Dark Glass">Dark Glass</option>
+              <option value="Dark Matte">Dark Matte</option>
+              <option value="Light">Light</option>
+            </select>
 
           </div>
         </div>
@@ -1104,15 +1104,17 @@ export default function JourneyTaskBoard() {
                 width: "min(320px, 82vw)",
                 zIndex: 21,
                 padding: 16,
-                background: theme.modalBg,
-                borderRight: theme.modalBorder,
-                color: theme.modalText,
-                boxShadow: themeMode === "light"
+                background: T.panel,
+                borderRight: T.border,
+                color: T.text,
+                boxShadow: isLight
                   ? "0 18px 40px rgba(0,0,0,0.18)"
                   : "0 22px 48px rgba(0,0,0,0.45)",
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
+                backdropFilter: T.blur,
+                WebkitBackdropFilter: T.blur,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1120,54 +1122,17 @@ export default function JourneyTaskBoard() {
                 <button
                   onClick={() => setMenuOpen(false)}
                   style={{
-                    border: theme.neutralBtnBorder,
-                    background: theme.neutralBtnBg,
+                    border: T.border,
+                    background: T.panel,
                     borderRadius: 10,
                     padding: "6px 10px",
                     cursor: "pointer",
-                    color: theme.neutralBtnText,
+                    color: T.text,
                     fontWeight: 700,
                   }}
                 >
                   Close
             </button>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              padding: 4,
-              borderRadius: 12,
-              border: theme.chipBorder,
-              background: theme.chipBg,
-              alignSelf: "flex-start",
-            }}
-          >
-            {([
-              { key: "board", label: "Board" },
-              { key: "summary", label: "Summary" },
-              { key: "calendar", label: "Calendar" },
-              { key: "settings", label: "Settings" },
-            ] as const).map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setActiveView(t.key)}
-                style={{
-                  border: theme.chipBorder,
-                  background: activeView === t.key ? theme.primaryBtnBg : "transparent",
-                  color: theme.chipText,
-                  borderRadius: 10,
-                  padding: "7px 12px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  fontSize: 12,
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
           </div>
 
               <div style={{ fontSize: 12, opacity: 0.7 }}>Filters</div>
@@ -1177,9 +1142,9 @@ export default function JourneyTaskBoard() {
                 style={{
                   padding: "8px 10px",
                   borderRadius: 10,
-                  border: theme.selectBorder,
-                  background: theme.selectBg,
-                  color: theme.selectText,
+                  border: T.border,
+                  background: T.panel,
+                  color: T.text,
                 }}
               >
                 {categories.map((c) => (
@@ -1205,13 +1170,13 @@ export default function JourneyTaskBoard() {
                     setMenuOpen(false);
                   }}
                   style={{
-                    border: theme.chipBorder,
-                    background: theme.primaryBtnBg,
+                    border: T.border,
+                    background: T.card,
                     borderRadius: 10,
                     padding: "7px 10px",
                     cursor: "pointer",
                     fontWeight: 700,
-                    color: theme.chipText,
+                    color: T.text,
                     fontSize: 12,
                   }}
                 >
@@ -1223,13 +1188,13 @@ export default function JourneyTaskBoard() {
                     setMenuOpen(false);
                   }}
                   style={{
-                    border: theme.neutralBtnBorder,
-                    background: theme.neutralBtnBg,
+                    border: T.border,
+                    background: T.panel,
                     borderRadius: 10,
                     padding: "7px 10px",
                     cursor: "pointer",
                     fontWeight: 700,
-                    color: theme.neutralBtnText,
+                    color: T.text,
                     fontSize: 12,
                   }}
                 >
@@ -1280,16 +1245,18 @@ export default function JourneyTaskBoard() {
                   <div
                     key={s}
                     style={{
-                      background: sectionBackgrounds[s],
-                      borderRadius: 18,
-                      padding: 12,
-                      border: "1px solid rgba(0,0,0,0.06)",
-                      boxShadow: "0 8px 22px rgba(0,0,0,0.05)",
-                      display: "flex",
-                      flexDirection: "column",
-                      minHeight: "clamp(420px, 68dvh, 760px)",
-                    }}
-                  >
+                    background: T.column,
+                    backdropFilter: T.blur,
+                    WebkitBackdropFilter: T.blur,
+                    borderRadius: 18,
+                    padding: 12,
+                    border: T.border,
+                    boxShadow: "0 8px 22px rgba(0,0,0,0.12)",
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "clamp(420px, 68dvh, 760px)",
+                  }}
+                >
                   <div
                     style={{
                       display: "flex",
@@ -1323,7 +1290,7 @@ export default function JourneyTaskBoard() {
                         style={{
                           fontSize: 16,
                           fontWeight: 900,
-                          color: themeMode === "light" ? "rgba(30,30,30,0.9)" : "rgba(255,255,255,0.95)",
+                          color: T.text,
                           outline: "none",
                           borderRadius: 6,
                           padding: editingSection === s ? "2px 6px" : 0,
@@ -1338,29 +1305,23 @@ export default function JourneyTaskBoard() {
                         style={{
                           fontSize: 13,
                           opacity: 0.85,
-                          color: themeMode === "light" ? "rgba(30,30,30,0.7)" : "rgba(255,255,255,0.85)",
+                          color: T.muted,
                         }}
                       >
                         {st.done}/{st.total} done • {st.pct}%
                       </div>
                     </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        {editingSection === s ? (
-                          <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    
-                
-                          </div>
-                        ) : null}
                         <button
                           onClick={() => resetSectionToIncomplete(s)}
                           style={{
-                            border: theme.neutralBtnBorder,
-                          background: theme.neutralBtnBg,
+                            border: T.border,
+                          background: T.panel,
                           borderRadius: 10,
                           padding: "5px 8px",
                           cursor: "pointer",
                           fontWeight: 700,
-                          color: theme.neutralBtnText,
+                          color: T.text,
                           fontSize: 12,
                         }}
                       >
@@ -1370,7 +1331,7 @@ export default function JourneyTaskBoard() {
                         style={{
                           fontSize: 18,
                           fontWeight: 900,
-                          color: themeMode === "light" ? "rgba(30,30,30,0.9)" : "rgba(255,255,255,0.95)",
+                          color: T.text,
                         }}
                       >
                         {st.pct}%
@@ -1384,7 +1345,7 @@ export default function JourneyTaskBoard() {
                           fontSize: 13,
                           opacity: 0.85,
                           padding: 10,
-                          color: themeMode === "light" ? "rgba(30,30,30,0.7)" : "rgba(255,255,255,0.8)",
+                          color: T.muted,
                         }}
                       >
                         No tasks here (with current filters).
@@ -1400,8 +1361,8 @@ export default function JourneyTaskBoard() {
                             <div
                               style={{
                                 border: t.done
-                                  ? theme.cardBorder
-                                  : themeMode === "light"
+                                  ? T.border
+                                  : isLight
                                     ? "1px solid rgba(180,60,60,0.35)"
                                     : "1px solid rgba(255,120,120,0.35)",
                                 borderRadius: 16,
@@ -1410,23 +1371,25 @@ export default function JourneyTaskBoard() {
                                 flexDirection: "column",
                                 gap: 10,
                                 background: t.done
-                                  ? theme.cardBg
-                                  : themeMode === "light"
+                                  ? T.card
+                                  : isLight
                                     ? "linear-gradient(180deg, rgba(255,230,230,0.98) 0%, rgba(245,210,210,0.98) 100%)"
                                     : "linear-gradient(180deg, rgba(46,26,26,0.98) 0%, rgba(26,16,16,0.98) 100%)",
                                 color: t.done
-                                  ? theme.cardText
-                                  : themeMode === "light"
+                                  ? T.text
+                                  : isLight
                                     ? "rgba(60,20,20,0.9)"
-                                    : theme.cardText,
+                                    : T.text,
                                 boxShadow: t.done
-                                  ? themeMode === "light"
+                                  ? isLight
                                     ? "0 10px 22px rgba(0,0,0,0.12)"
                                     : "0 12px 26px rgba(0,0,0,0.35)"
-                                  : themeMode === "light"
+                                  : isLight
                                     ? "0 12px 26px rgba(160,40,40,0.18)"
                                     : "0 14px 30px rgba(120,40,40,0.25)",
                                 position: "relative",
+                                backdropFilter: T.blur,
+                                WebkitBackdropFilter: T.blur,
                               }}
                             >
                               <div
@@ -1441,7 +1404,7 @@ export default function JourneyTaskBoard() {
                                   borderBottomLeftRadius: 16,
                                   background: t.done
                                     ? "linear-gradient(180deg, rgba(34,197,94,0.6) 0%, rgba(22,163,74,0.4) 100%)"
-                                    : themeMode === "light"
+                                    : isLight
                                       ? "linear-gradient(180deg, rgba(185,28,28,0.6) 0%, rgba(127,29,29,0.5) 100%)"
                                       : "linear-gradient(180deg, rgba(239,68,68,0.8) 0%, rgba(185,28,28,0.6) 100%)",
                                   opacity: t.done ? 0.45 : 0.9,
@@ -1479,8 +1442,8 @@ export default function JourneyTaskBoard() {
                                             fontSize: 12,
                                             padding: "3px 8px",
                                             borderRadius: 999,
-                                            border: theme.badgeBorder,
-                                            background: theme.badgeBg,
+                                            border: T.border,
+                                            background: T.panel,
                                             opacity: 0.9,
                                           }}
                                         >
@@ -1497,12 +1460,12 @@ export default function JourneyTaskBoard() {
                                         borderRadius: 999,
                                         background: t.done
                                           ? "rgba(34,197,94,0.12)"
-                                          : themeMode === "light"
+                                          : isLight
                                             ? "rgba(239,68,68,0.16)"
                                             : "rgba(239,68,68,0.14)",
                                         border: t.done
                                           ? "1px solid rgba(34,197,94,0.25)"
-                                          : themeMode === "light"
+                                          : isLight
                                             ? "1px solid rgba(185,28,28,0.35)"
                                             : "1px solid rgba(239,68,68,0.3)",
                                       }}
@@ -1529,13 +1492,13 @@ export default function JourneyTaskBoard() {
                                   <button
                                     onClick={() => openEdit(t)}
                                     style={{
-                                      border: theme.neutralBtnBorder,
-                                      background: theme.neutralBtnBg,
+                                      border: T.border,
+                                      background: T.panel,
                                       borderRadius: 10,
                                       padding: "6px 10px",
                                       cursor: "pointer",
                                       fontWeight: 700,
-                                      color: theme.neutralBtnText,
+                                      color: T.text,
                                     }}
                                   >
                                     Edit
@@ -1585,16 +1548,18 @@ export default function JourneyTaskBoard() {
               <div
                 key={p.key}
                 style={{
-                  background: "linear-gradient(180deg, rgba(28,28,28,0.98) 0%, rgba(16,16,16,0.98) 100%)",
+                  background: T.panel,
                   borderRadius: 18,
                   padding: 16,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
-                  color: "rgba(255,255,255,0.9)",
+                  border: T.border,
+                  boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+                  color: T.text,
                   minHeight: 260,
                   display: "flex",
                   flexDirection: "column",
                   gap: 12,
+                  backdropFilter: T.blur,
+                  WebkitBackdropFilter: T.blur,
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1606,8 +1571,10 @@ export default function JourneyTaskBoard() {
                     style={{
                       padding: 10,
                       borderRadius: 12,
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.08)",
+                      background: T.card,
+                      border: T.border,
+                      backdropFilter: T.blur,
+                      WebkitBackdropFilter: T.blur,
                     }}
                   >
                     <div style={{ fontSize: 12, opacity: 0.7 }}>Done</div>
@@ -1617,8 +1584,10 @@ export default function JourneyTaskBoard() {
                     style={{
                       padding: 10,
                       borderRadius: 12,
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.08)",
+                      background: T.card,
+                      border: T.border,
+                      backdropFilter: T.blur,
+                      WebkitBackdropFilter: T.blur,
                     }}
                   >
                     <div style={{ fontSize: 12, opacity: 0.7 }}>Not done</div>
@@ -1629,8 +1598,10 @@ export default function JourneyTaskBoard() {
                   style={{
                     padding: 12,
                     borderRadius: 12,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: T.card,
+                    border: T.border,
+                    backdropFilter: T.blur,
+                    WebkitBackdropFilter: T.blur,
                   }}
                 >
                   <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>By section</div>
@@ -1664,21 +1635,17 @@ export default function JourneyTaskBoard() {
           >
             <div
               style={{
-                background: themeMode === "light"
-                  ? "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(236,236,236,0.98) 100%)"
-                  : "linear-gradient(180deg, rgba(28,28,28,0.98) 0%, rgba(16,16,16,0.98) 100%)",
+                background: T.panel,
                 borderRadius: 18,
                 padding: 16,
-                border: themeMode === "light"
-                  ? "1px solid rgba(0,0,0,0.08)"
-                  : "1px solid rgba(255,255,255,0.08)",
-                boxShadow: themeMode === "light"
-                  ? "0 12px 26px rgba(0,0,0,0.12)"
-                  : "0 12px 26px rgba(0,0,0,0.35)",
-                color: themeMode === "light" ? "rgba(20,20,20,0.92)" : "rgba(255,255,255,0.9)",
+                border: T.border,
+                boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+                color: T.text,
                 display: "flex",
                 flexDirection: "column",
                 gap: 12,
+                backdropFilter: T.blur,
+                WebkitBackdropFilter: T.blur,
               }}
             >
               <div style={{ fontSize: 16, fontWeight: 900 }}>Theme</div>
@@ -1687,53 +1654,63 @@ export default function JourneyTaskBoard() {
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button
-                  onClick={() => setThemeMode("dark")}
+                  onClick={() => setThemeName("Dark Glass")}
                   style={{
-                    border: theme.chipBorder,
-                    background: themeMode === "dark" ? theme.primaryBtnBg : "transparent",
-                    color: theme.chipText,
+                    border: T.border,
+                    background: themeName === "Dark Glass" ? T.card : "transparent",
+                    color: T.text,
                     borderRadius: 10,
                     padding: "8px 12px",
                     cursor: "pointer",
                     fontWeight: 700,
                   }}
                 >
-                  Dark mode
+                  Dark Glass
                 </button>
                 <button
-                  onClick={() => setThemeMode("light")}
+                  onClick={() => setThemeName("Dark Matte")}
                   style={{
-                    border: theme.chipBorder,
-                    background: themeMode === "light" ? theme.primaryBtnBg : "transparent",
-                    color: theme.chipText,
+                    border: T.border,
+                    background: themeName === "Dark Matte" ? T.card : "transparent",
+                    color: T.text,
                     borderRadius: 10,
                     padding: "8px 12px",
                     cursor: "pointer",
                     fontWeight: 700,
                   }}
                 >
-                  Light mode
+                  Dark Matte
+                </button>
+                <button
+                  onClick={() => setThemeName("Light")}
+                  style={{
+                    border: T.border,
+                    background: themeName === "Light" ? T.card : "transparent",
+                    color: T.text,
+                    borderRadius: 10,
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                  }}
+                >
+                  Light
                 </button>
               </div>
             </div>
 
             <div
               style={{
-                background: themeMode === "light"
-                  ? "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(236,236,236,0.98) 100%)"
-                  : "linear-gradient(180deg, rgba(28,28,28,0.98) 0%, rgba(16,16,16,0.98) 100%)",
+                background: T.panel,
                 borderRadius: 18,
                 padding: 16,
-                border: themeMode === "light"
-                  ? "1px solid rgba(0,0,0,0.08)"
-                  : "1px solid rgba(255,255,255,0.08)",
-                boxShadow: themeMode === "light"
-                  ? "0 12px 26px rgba(0,0,0,0.12)"
-                  : "0 12px 26px rgba(0,0,0,0.35)",
-                color: themeMode === "light" ? "rgba(20,20,20,0.92)" : "rgba(255,255,255,0.9)",
+                border: T.border,
+                boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+                color: T.text,
                 display: "flex",
                 flexDirection: "column",
                 gap: 10,
+                backdropFilter: T.blur,
+                WebkitBackdropFilter: T.blur,
               }}
             >
               <div style={{ fontSize: 16, fontWeight: 900 }}>Preferences</div>
@@ -1748,18 +1725,14 @@ export default function JourneyTaskBoard() {
         ) : (
           <div
             style={{
-              background: themeMode === "light"
-                ? "linear-gradient(180deg, rgba(248,248,248,0.98) 0%, rgba(236,236,236,0.98) 100%)"
-                : "linear-gradient(180deg, rgba(28,28,28,0.98) 0%, rgba(16,16,16,0.98) 100%)",
+              background: T.panel,
               borderRadius: 20,
               padding: 18,
-              border: themeMode === "light"
-                ? "1px solid rgba(0,0,0,0.08)"
-                : "1px solid rgba(255,255,255,0.08)",
-              boxShadow: themeMode === "light"
-                ? "0 14px 30px rgba(0,0,0,0.14)"
-                : "0 14px 30px rgba(0,0,0,0.4)",
-              color: themeMode === "light" ? "rgba(20,20,20,0.92)" : "rgba(255,255,255,0.9)",
+              border: T.border,
+              boxShadow: "0 14px 30px rgba(0,0,0,0.28)",
+              color: T.text,
+              backdropFilter: T.blur,
+              WebkitBackdropFilter: T.blur,
             }}
           >
             <div
@@ -1779,8 +1752,8 @@ export default function JourneyTaskBoard() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: themeMode === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)",
-                    border: themeMode === "light" ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.1)",
+                    background: T.card,
+                    border: T.border,
                     fontWeight: 900,
                   }}
                 >
@@ -1795,13 +1768,13 @@ export default function JourneyTaskBoard() {
                 <button
                   onClick={() => setCalendarOffset((v) => v - 1)}
                   style={{
-                    border: theme.neutralBtnBorder,
-                    background: theme.neutralBtnBg,
+                    border: T.border,
+                    background: T.panel,
                     borderRadius: 10,
                     padding: "6px 10px",
                     cursor: "pointer",
                     fontWeight: 700,
-                    color: theme.neutralBtnText,
+                    color: T.text,
                   }}
                 >
                   Prev
@@ -1809,13 +1782,13 @@ export default function JourneyTaskBoard() {
                 <button
                   onClick={() => setCalendarOffset(0)}
                   style={{
-                    border: theme.neutralBtnBorder,
-                    background: theme.neutralBtnBg,
+                    border: T.border,
+                    background: T.panel,
                     borderRadius: 10,
                     padding: "6px 10px",
                     cursor: "pointer",
                     fontWeight: 700,
-                    color: theme.neutralBtnText,
+                    color: T.text,
                   }}
                 >
                   Today
@@ -1823,13 +1796,13 @@ export default function JourneyTaskBoard() {
                 <button
                   onClick={() => setCalendarOffset((v) => v + 1)}
                   style={{
-                    border: theme.neutralBtnBorder,
-                    background: theme.neutralBtnBg,
+                    border: T.border,
+                    background: T.panel,
                     borderRadius: 10,
                     padding: "6px 10px",
                     cursor: "pointer",
                     fontWeight: 700,
-                    color: theme.neutralBtnText,
+                    color: T.text,
                   }}
                 >
                   Next
@@ -1849,9 +1822,9 @@ export default function JourneyTaskBoard() {
                 style={{
                   padding: "8px 10px",
                   borderRadius: 10,
-                  border: theme.selectBorder,
-                  background: theme.selectBg,
-                  color: theme.selectText,
+                  border: T.border,
+                  background: T.panel,
+                  color: T.text,
                 }}
               >
                 {Array.from({ length: 36 }).map((_, idx) => {
@@ -1874,8 +1847,10 @@ export default function JourneyTaskBoard() {
                 gap: 8,
                 padding: 10,
                 borderRadius: 14,
-                background: themeMode === "light" ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.04)",
-                border: themeMode === "light" ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.08)",
+                background: T.panel,
+                border: T.border,
+                backdropFilter: T.blur,
+                WebkitBackdropFilter: T.blur,
               }}
             >
               {(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const).map((d) => (
@@ -1903,16 +1878,10 @@ export default function JourneyTaskBoard() {
                     background: cell.day
                       ? calendarData.isCompleted(cell.day)
                         ? "linear-gradient(180deg, rgba(34,197,94,0.5) 0%, rgba(22,163,74,0.35) 100%)"
-                        : themeMode === "light"
-                          ? "rgba(0,0,0,0.04)"
-                          : "rgba(255,255,255,0.06)"
+                        : T.card
                       : "transparent",
-                    border: cell.day
-                      ? themeMode === "light"
-                        ? "1px solid rgba(0,0,0,0.08)"
-                        : "1px solid rgba(255,255,255,0.08)"
-                      : "none",
-                    color: themeMode === "light" ? "rgba(20,20,20,0.9)" : "rgba(255,255,255,0.9)",
+                    border: cell.day ? T.border : "none",
+                    color: T.text,
                     fontWeight: 700,
                     fontSize: 12,
                     position: "relative",
@@ -1946,7 +1915,7 @@ export default function JourneyTaskBoard() {
           open={modalOpen}
           title={editingId ? "Edit task" : "Add task"}
           onClose={closeModal}
-          theme={theme}
+          theme={T}
         >
           <form
             onSubmit={(e) => {
@@ -1976,9 +1945,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: theme.inputBorder,
-                  background: theme.inputBg,
-                  color: theme.modalText,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
                   boxSizing: "border-box",
                 }}
               />
@@ -1993,9 +1962,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: theme.inputBorder,
-                  background: theme.inputBg,
-                  color: theme.modalText,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
                   boxSizing: "border-box",
                 }}
               >
@@ -2015,9 +1984,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: theme.inputBorder,
-                  background: theme.inputBg,
-                  color: theme.modalText,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
                   boxSizing: "border-box",
                 }}
               />
@@ -2034,9 +2003,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: theme.inputBorder,
-                  background: theme.inputBg,
-                  color: theme.modalText,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
                   resize: "vertical",
                   boxSizing: "border-box",
                 }}
@@ -2047,13 +2016,13 @@ export default function JourneyTaskBoard() {
               <button
                 onClick={closeModal}
                 style={{
-                  border: theme.neutralBtnBorder,
-                  background: theme.neutralBtnBg,
+                  border: T.border,
+                  background: T.panel,
                   borderRadius: 12,
                   padding: "10px 14px",
                   cursor: "pointer",
                   fontWeight: 700,
-                  color: theme.neutralBtnText,
+                  color: T.text,
                 }}
                 type="button"
               >
@@ -2062,9 +2031,9 @@ export default function JourneyTaskBoard() {
               <button
                 type="submit"
                 style={{
-                  border: theme.chipBorder,
-                  background: theme.primaryBtnBg,
-                  color: theme.chipText,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
                   borderRadius: 12,
                   padding: "10px 14px",
                   cursor: "pointer",
@@ -2091,7 +2060,7 @@ export default function JourneyTaskBoard() {
               : "New event"
           }
           onClose={() => setCalendarModalOpen(false)}
-          theme={theme}
+          theme={T}
         >
           <form
             onSubmit={(e) => {
@@ -2109,9 +2078,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 14px",
                   borderRadius: 12,
-                  border: theme.inputBorder,
-                  background: theme.inputBg,
-                  color: theme.modalText,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
                   boxSizing: "border-box",
                 }}
               />
@@ -2123,9 +2092,9 @@ export default function JourneyTaskBoard() {
                   width: "100%",
                   padding: "12px 10px",
                   borderRadius: 12,
-                  border: theme.inputBorder,
-                  background: theme.inputBg,
-                  color: theme.modalText,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
                   boxSizing: "border-box",
                 }}
               />
@@ -2136,13 +2105,13 @@ export default function JourneyTaskBoard() {
                 type="button"
                 onClick={() => setCalendarModalOpen(false)}
                 style={{
-                  border: theme.neutralBtnBorder,
-                  background: theme.neutralBtnBg,
+                  border: T.border,
+                  background: T.panel,
                   borderRadius: 12,
                   padding: "10px 14px",
                   cursor: "pointer",
                   fontWeight: 700,
-                  color: theme.neutralBtnText,
+                  color: T.text,
                 }}
               >
                 Close
@@ -2150,9 +2119,9 @@ export default function JourneyTaskBoard() {
               <button
                 type="submit"
                 style={{
-                  border: theme.chipBorder,
-                  background: theme.primaryBtnBg,
-                  color: theme.chipText,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
                   borderRadius: 12,
                   padding: "10px 14px",
                   cursor: "pointer",
@@ -2183,8 +2152,8 @@ export default function JourneyTaskBoard() {
                           gap: 10,
                           padding: "10px 12px",
                           borderRadius: 12,
-                          border: theme.modalBorder,
-                          background: theme.inputBg,
+                          border: T.border,
+                          background: T.card,
                         }}
                       >
                         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

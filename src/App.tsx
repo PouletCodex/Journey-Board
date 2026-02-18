@@ -258,6 +258,7 @@ export default function JourneyTaskBoard() {
   const [activeView, setActiveView] = useState<"board" | "summary" | "settings">("board");
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [completedDays, setCompletedDays] = useState<string[]>([]);
   const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>({
     Morning: "Morning",
     Midday: "Midday",
@@ -285,6 +286,18 @@ export default function JourneyTaskBoard() {
       if (raw) {
         const parsed = JSON.parse(raw) as Task[];
         if (Array.isArray(parsed)) setTasks(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("journey_completed_days");
+      if (raw) {
+        const parsed = JSON.parse(raw) as string[];
+        if (Array.isArray(parsed)) setCompletedDays(parsed);
       }
     } catch {
       // ignore
@@ -334,6 +347,14 @@ export default function JourneyTaskBoard() {
       // ignore
     }
   }, [themeMode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_completed_days", JSON.stringify(completedDays));
+    } catch {
+      // ignore
+    }
+  }, [completedDays]);
 
   useEffect(() => {
     try {
@@ -484,19 +505,25 @@ export default function JourneyTaskBoard() {
       now.getDate() - dayOfWeek
     ).getTime();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const completedSet = new Set(completedDays);
 
     function buildStats(fromTs: number) {
       const list = tasks.filter((t) => t.createdAt >= fromTs);
       const total = list.length;
       const done = list.filter((t) => t.done).length;
       const notDone = total - done;
+      const daysCompleted = Array.from(completedSet).filter((key) => {
+        const [y, m, d] = key.split("-").map((v) => Number(v));
+        const ts = new Date(y, m, d).getTime();
+        return ts >= fromTs;
+      }).length;
       const bySection = sections.map((s) => {
         const sectionList = list.filter((t) => t.section === s);
         const sectionTotal = sectionList.length;
         const sectionDone = sectionList.filter((t) => t.done).length;
         return { section: s, total: sectionTotal, done: sectionDone };
       });
-      return { total, done, notDone, pct: pct(done, total), bySection };
+      return { total, done, notDone, pct: pct(done, total), bySection, daysCompleted };
     }
 
     return {
@@ -504,21 +531,12 @@ export default function JourneyTaskBoard() {
       week: buildStats(startOfWeek),
       month: buildStats(startOfMonth),
     };
-  }, [tasks, sections]);
+  }, [tasks, sections, completedDays]);
 
   const streakDays = useMemo(() => {
-    if (tasks.length === 0) return 0;
+    if (completedDays.length === 0) return 0;
 
-    const byDay = new Map<string, { total: number; done: number }>();
-    for (const t of tasks) {
-      const d = new Date(t.createdAt);
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      const entry = byDay.get(key) ?? { total: 0, done: 0 };
-      entry.total += 1;
-      if (t.done) entry.done += 1;
-      byDay.set(key, entry);
-    }
-
+    const completedSet = new Set(completedDays);
     const today = new Date();
     const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
@@ -526,14 +544,24 @@ export default function JourneyTaskBoard() {
     let cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     while (true) {
       const key = dayKey(cursor);
-      const entry = byDay.get(key);
-      if (!entry || entry.total === 0 || entry.done !== entry.total) break;
+      if (!completedSet.has(key)) break;
       streak += 1;
       cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - 1);
     }
 
     return streak;
-  }, [tasks]);
+  }, [completedDays]);
+
+  function saveDayCompletion() {
+    const today = new Date();
+    const key = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    const allDone = tasks.length > 0 && tasks.every((t) => t.done);
+    if (!allDone) {
+      if (!confirm("Not all tasks are done. Mark all as done and save the day?")) return;
+      setTasks((prev) => prev.map((t) => ({ ...t, done: true })));
+    }
+    setCompletedDays((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  }
 
   function openCreate() {
     setEditingId(null);
@@ -1000,6 +1028,24 @@ export default function JourneyTaskBoard() {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button
                   onClick={() => {
+                    saveDayCompletion();
+                    setMenuOpen(false);
+                  }}
+                  style={{
+                    border: theme.chipBorder,
+                    background: theme.primaryBtnBg,
+                    borderRadius: 10,
+                    padding: "7px 10px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    color: theme.chipText,
+                    fontSize: 12,
+                  }}
+                >
+                  Save day
+                </button>
+                <button
+                  onClick={() => {
                     resetAllToIncomplete();
                     setMenuOpen(false);
                   }}
@@ -1428,6 +1474,9 @@ export default function JourneyTaskBoard() {
                       </div>
                     ))}
                   </div>
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                  Days completed: {p.data.daysCompleted}
                 </div>
               </div>
             ))}

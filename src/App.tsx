@@ -22,6 +22,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 type Section = "Morning" | "Midday" | "AfterWork";
+type Language = "en" | "fr" | "es" | "pt" | "de" | "it";
+const SECTIONS: Section[] = ["Morning", "Midday", "AfterWork"];
 
 type ThemeName = "Dark Glass" | "Dark Matte" | "Light";
 type ThemeTokens = {
@@ -88,13 +90,574 @@ type CalendarEvent = {
 };
 
 const STORAGE_KEY = "journey_task_board_v1";
+const LANGUAGE_STORAGE_KEY = "journey_language_v1";
+const ALL_CATEGORIES = "__all__";
+
+const LANGUAGE_OPTIONS: Array<{ value: Language; label: string }> = [
+  { value: "en", label: "English" },
+  { value: "fr", label: "Francais" },
+  { value: "es", label: "Espanol" },
+  { value: "pt", label: "Portugues" },
+  { value: "de", label: "Deutsch" },
+  { value: "it", label: "Italiano" },
+];
+
+const LOCALES: Record<Language, string> = {
+  en: "en-US",
+  fr: "fr-FR",
+  es: "es-ES",
+  pt: "pt-PT",
+  de: "de-DE",
+  it: "it-IT",
+};
+
+const TRANSLATIONS: Record<Language, Record<string, string>> = {
+  en: {
+    appTitle: "Journey Task Board",
+    board: "Board",
+    summary: "Summary",
+    calendar: "Calendar",
+    settings: "Settings",
+    subtitle: "Morning / Midday / After Work - tick tasks, add comments, track progress.",
+    points: "points",
+    dayStreak: "day streak",
+    openMenu: "Open menu",
+    addTask: "+ Add Task",
+    saveDay: "Save Day",
+    theme: "Theme",
+    language: "Language",
+    menu: "Menu",
+    close: "Close",
+    filters: "Filters",
+    all: "All",
+    showOnlyIncomplete: "Show only incomplete",
+    actions: "Actions",
+    resetAll: "Reset all",
+    clearAll: "Clear all",
+    completed: "Completed",
+    notDone: "Not done",
+    noComment: "No comment",
+    edit: "Edit",
+    delete: "Delete",
+    doneStatus: "Done",
+    notDoneStatus: "Not done",
+    sectionMorning: "Morning",
+    sectionMidday: "Midday",
+    sectionAfterWork: "After Work",
+    tasksDone: "done",
+    uncheckAll: "Uncheck all",
+    noTasksFiltered: "No tasks here (with current filters).",
+    today: "Today",
+    thisWeek: "This Week",
+    thisMonth: "This Month",
+    done: "Done",
+    bySection: "By section",
+    daysCompleted: "Days completed",
+    preferences: "Preferences",
+    themeDescription: "Choose light or dark mode for the whole app.",
+    pointsSystemInfo: "The app now includes a point system on top of streak tracking.",
+    completedTask: "Completed task",
+    commentBonus: "Comment bonus",
+    savedDay: "Saved day",
+    streakBonus: "Streak bonus",
+    cappedAtDays: "capped at",
+    days: "days",
+    totalScore: "Total score",
+    plus: "+",
+    equals: "=",
+    calendarSubtitle: "Plan events and track streaks",
+    prev: "Prev",
+    next: "Next",
+    mon: "Mon",
+    tue: "Tue",
+    wed: "Wed",
+    thu: "Thu",
+    fri: "Fri",
+    sat: "Sat",
+    sun: "Sun",
+    editTask: "Edit task",
+    addTaskModal: "Add task",
+    titleField: "Title *",
+    titlePlaceholder: "e.g. Gym / Study / Call...",
+    sectionField: "Section",
+    categoryField: "Category",
+    categoryPlaceholder: "e.g. Sport / Study / Work",
+    commentField: "Comment",
+    commentPlaceholder: "Write a quick note about this task...",
+    cancel: "Cancel",
+    save: "Save",
+    create: "Create",
+    newEvent: "New event",
+    eventTitle: "Event title",
+    addEvent: "Add event",
+    events: "Events",
+    noEventsForDay: "No events for this day.",
+    savedLocally: "Saved locally in your browser (localStorage).",
+    clickToRename: "Click to rename",
+    markAllDoneConfirm: "Not all tasks are done. Mark all as done and save the day?",
+    deleteAllConfirm: "Delete all tasks?",
+    resetAllConfirm: "Mark all tasks as incomplete?",
+    resetSectionConfirm: "Mark all {section} tasks as incomplete?",
+  },
+  fr: {
+    appTitle: "Tableau de taches",
+    board: "Tableau",
+    summary: "Resume",
+    calendar: "Calendrier",
+    settings: "Parametres",
+    subtitle: "Matin / Midi / Apres le travail - coche les taches, ajoute des commentaires, suis ta progression.",
+    points: "points",
+    dayStreak: "jours de serie",
+    openMenu: "Ouvrir le menu",
+    addTask: "+ Ajouter une tache",
+    saveDay: "Sauvegarder la journee",
+    theme: "Theme",
+    language: "Langue",
+    menu: "Menu",
+    close: "Fermer",
+    filters: "Filtres",
+    all: "Tout",
+    showOnlyIncomplete: "Afficher seulement les taches non terminees",
+    actions: "Actions",
+    resetAll: "Tout reinitialiser",
+    clearAll: "Tout supprimer",
+    completed: "Terminee",
+    notDone: "Non terminee",
+    noComment: "Pas de commentaire",
+    edit: "Modifier",
+    delete: "Supprimer",
+    doneStatus: "Terminee",
+    notDoneStatus: "Non terminee",
+    sectionMorning: "Matin",
+    sectionMidday: "Midi",
+    sectionAfterWork: "Apres le travail",
+    tasksDone: "faites",
+    uncheckAll: "Tout decocher",
+    noTasksFiltered: "Aucune tache ici avec les filtres actuels.",
+    today: "Aujourd'hui",
+    thisWeek: "Cette semaine",
+    thisMonth: "Ce mois-ci",
+    done: "Faites",
+    bySection: "Par section",
+    daysCompleted: "Jours valides",
+    preferences: "Preferences",
+    themeDescription: "Choisis le mode clair ou sombre pour toute l'application.",
+    pointsSystemInfo: "L'application inclut maintenant un systeme de points en plus du streak.",
+    completedTask: "Tache terminee",
+    commentBonus: "Bonus commentaire",
+    savedDay: "Journee sauvegardee",
+    streakBonus: "Bonus de serie",
+    cappedAtDays: "plafonne a",
+    days: "jours",
+    totalScore: "Score total",
+    plus: "+",
+    equals: "=",
+    calendarSubtitle: "Planifie des evenements et suis tes series",
+    prev: "Prec.",
+    next: "Suiv.",
+    mon: "Lun",
+    tue: "Mar",
+    wed: "Mer",
+    thu: "Jeu",
+    fri: "Ven",
+    sat: "Sam",
+    sun: "Dim",
+    editTask: "Modifier la tache",
+    addTaskModal: "Ajouter une tache",
+    titleField: "Titre *",
+    titlePlaceholder: "ex. Sport / Etude / Appel...",
+    sectionField: "Section",
+    categoryField: "Categorie",
+    categoryPlaceholder: "ex. Sport / Etude / Travail",
+    commentField: "Commentaire",
+    commentPlaceholder: "Ecris une note rapide sur cette tache...",
+    cancel: "Annuler",
+    save: "Enregistrer",
+    create: "Creer",
+    newEvent: "Nouvel evenement",
+    eventTitle: "Titre de l'evenement",
+    addEvent: "Ajouter l'evenement",
+    events: "Evenements",
+    noEventsForDay: "Aucun evenement pour cette journee.",
+    savedLocally: "Sauvegarde locale dans ton navigateur (localStorage).",
+    clickToRename: "Clique pour renommer",
+    markAllDoneConfirm: "Toutes les taches ne sont pas terminees. Les marquer comme faites et sauvegarder la journee ?",
+    deleteAllConfirm: "Supprimer toutes les taches ?",
+    resetAllConfirm: "Marquer toutes les taches comme non terminees ?",
+    resetSectionConfirm: "Marquer toutes les taches de {section} comme non terminees ?",
+  },
+  es: {
+    appTitle: "Tablero de tareas",
+    board: "Tablero",
+    summary: "Resumen",
+    calendar: "Calendario",
+    settings: "Ajustes",
+    subtitle: "Manana / Mediodia / Despues del trabajo - marca tareas, agrega comentarios y sigue tu progreso.",
+    points: "puntos",
+    dayStreak: "dias seguidos",
+    openMenu: "Abrir menu",
+    addTask: "+ Agregar tarea",
+    saveDay: "Guardar dia",
+    theme: "Tema",
+    language: "Idioma",
+    menu: "Menu",
+    close: "Cerrar",
+    filters: "Filtros",
+    all: "Todo",
+    showOnlyIncomplete: "Mostrar solo incompletas",
+    actions: "Acciones",
+    resetAll: "Reiniciar todo",
+    clearAll: "Borrar todo",
+    completed: "Completada",
+    notDone: "Sin completar",
+    noComment: "Sin comentario",
+    edit: "Editar",
+    delete: "Eliminar",
+    doneStatus: "Hecha",
+    notDoneStatus: "Sin hacer",
+    sectionMorning: "Manana",
+    sectionMidday: "Mediodia",
+    sectionAfterWork: "Despues del trabajo",
+    tasksDone: "hechas",
+    uncheckAll: "Desmarcar todo",
+    noTasksFiltered: "No hay tareas aqui con los filtros actuales.",
+    today: "Hoy",
+    thisWeek: "Esta semana",
+    thisMonth: "Este mes",
+    done: "Hechas",
+    bySection: "Por seccion",
+    daysCompleted: "Dias completados",
+    preferences: "Preferencias",
+    themeDescription: "Elige modo claro u oscuro para toda la app.",
+    pointsSystemInfo: "La app ahora incluye un sistema de puntos ademas de la racha.",
+    completedTask: "Tarea completada",
+    commentBonus: "Bonus por comentario",
+    savedDay: "Dia guardado",
+    streakBonus: "Bonus de racha",
+    cappedAtDays: "limitado a",
+    days: "dias",
+    totalScore: "Puntuacion total",
+    plus: "+",
+    equals: "=",
+    calendarSubtitle: "Planifica eventos y sigue tus rachas",
+    prev: "Ant.",
+    next: "Sig.",
+    mon: "Lun",
+    tue: "Mar",
+    wed: "Mie",
+    thu: "Jue",
+    fri: "Vie",
+    sat: "Sab",
+    sun: "Dom",
+    editTask: "Editar tarea",
+    addTaskModal: "Agregar tarea",
+    titleField: "Titulo *",
+    titlePlaceholder: "ej. Gym / Estudio / Llamada...",
+    sectionField: "Seccion",
+    categoryField: "Categoria",
+    categoryPlaceholder: "ej. Deporte / Estudio / Trabajo",
+    commentField: "Comentario",
+    commentPlaceholder: "Escribe una nota rapida sobre esta tarea...",
+    cancel: "Cancelar",
+    save: "Guardar",
+    create: "Crear",
+    newEvent: "Nuevo evento",
+    eventTitle: "Titulo del evento",
+    addEvent: "Agregar evento",
+    events: "Eventos",
+    noEventsForDay: "No hay eventos para este dia.",
+    savedLocally: "Guardado localmente en tu navegador (localStorage).",
+    clickToRename: "Haz clic para renombrar",
+    markAllDoneConfirm: "No todas las tareas estan hechas. Marcarlas todas como hechas y guardar el dia?",
+    deleteAllConfirm: "Eliminar todas las tareas?",
+    resetAllConfirm: "Marcar todas las tareas como incompletas?",
+    resetSectionConfirm: "Marcar todas las tareas de {section} como incompletas?",
+  },
+  pt: {
+    appTitle: "Quadro de tarefas",
+    board: "Quadro",
+    summary: "Resumo",
+    calendar: "Calendario",
+    settings: "Definicoes",
+    subtitle: "Manha / Meio-dia / Depois do trabalho - marca tarefas, adiciona comentarios e acompanha o progresso.",
+    points: "pontos",
+    dayStreak: "dias seguidos",
+    openMenu: "Abrir menu",
+    addTask: "+ Adicionar tarefa",
+    saveDay: "Guardar dia",
+    theme: "Tema",
+    language: "Idioma",
+    menu: "Menu",
+    close: "Fechar",
+    filters: "Filtros",
+    all: "Tudo",
+    showOnlyIncomplete: "Mostrar apenas incompletas",
+    actions: "Acoes",
+    resetAll: "Repor tudo",
+    clearAll: "Apagar tudo",
+    completed: "Concluida",
+    notDone: "Por fazer",
+    noComment: "Sem comentario",
+    edit: "Editar",
+    delete: "Eliminar",
+    doneStatus: "Feita",
+    notDoneStatus: "Por fazer",
+    sectionMorning: "Manha",
+    sectionMidday: "Meio-dia",
+    sectionAfterWork: "Depois do trabalho",
+    tasksDone: "feitas",
+    uncheckAll: "Desmarcar tudo",
+    noTasksFiltered: "Nao ha tarefas aqui com os filtros atuais.",
+    today: "Hoje",
+    thisWeek: "Esta semana",
+    thisMonth: "Este mes",
+    done: "Feitas",
+    bySection: "Por secao",
+    daysCompleted: "Dias concluidos",
+    preferences: "Preferencias",
+    themeDescription: "Escolhe o modo claro ou escuro para toda a app.",
+    pointsSystemInfo: "A app inclui agora um sistema de pontos alem do streak.",
+    completedTask: "Tarefa concluida",
+    commentBonus: "Bonus de comentario",
+    savedDay: "Dia guardado",
+    streakBonus: "Bonus de streak",
+    cappedAtDays: "limitado a",
+    days: "dias",
+    totalScore: "Pontuacao total",
+    plus: "+",
+    equals: "=",
+    calendarSubtitle: "Planeia eventos e acompanha streaks",
+    prev: "Ant.",
+    next: "Seg.",
+    mon: "Seg",
+    tue: "Ter",
+    wed: "Qua",
+    thu: "Qui",
+    fri: "Sex",
+    sat: "Sab",
+    sun: "Dom",
+    editTask: "Editar tarefa",
+    addTaskModal: "Adicionar tarefa",
+    titleField: "Titulo *",
+    titlePlaceholder: "ex. Ginasio / Estudo / Chamada...",
+    sectionField: "Secao",
+    categoryField: "Categoria",
+    categoryPlaceholder: "ex. Desporto / Estudo / Trabalho",
+    commentField: "Comentario",
+    commentPlaceholder: "Escreve uma nota rapida sobre esta tarefa...",
+    cancel: "Cancelar",
+    save: "Guardar",
+    create: "Criar",
+    newEvent: "Novo evento",
+    eventTitle: "Titulo do evento",
+    addEvent: "Adicionar evento",
+    events: "Eventos",
+    noEventsForDay: "Sem eventos para este dia.",
+    savedLocally: "Guardado localmente no teu navegador (localStorage).",
+    clickToRename: "Clica para renomear",
+    markAllDoneConfirm: "Nem todas as tarefas estao feitas. Marcar tudo como feito e guardar o dia?",
+    deleteAllConfirm: "Apagar todas as tarefas?",
+    resetAllConfirm: "Marcar todas as tarefas como incompletas?",
+    resetSectionConfirm: "Marcar todas as tarefas de {section} como incompletas?",
+  },
+  de: {
+    appTitle: "Aufgabenboard",
+    board: "Board",
+    summary: "Ubersicht",
+    calendar: "Kalender",
+    settings: "Einstellungen",
+    subtitle: "Morgen / Mittag / Nach der Arbeit - hake Aufgaben ab, fuege Kommentare hinzu und verfolge deinen Fortschritt.",
+    points: "Punkte",
+    dayStreak: "Tage Serie",
+    openMenu: "Menue oeffnen",
+    addTask: "+ Aufgabe hinzufugen",
+    saveDay: "Tag speichern",
+    theme: "Thema",
+    language: "Sprache",
+    menu: "Menue",
+    close: "Schliessen",
+    filters: "Filter",
+    all: "Alle",
+    showOnlyIncomplete: "Nur unvollstaendige anzeigen",
+    actions: "Aktionen",
+    resetAll: "Alles zuruecksetzen",
+    clearAll: "Alles loeschen",
+    completed: "Erledigt",
+    notDone: "Nicht erledigt",
+    noComment: "Kein Kommentar",
+    edit: "Bearbeiten",
+    delete: "Loeschen",
+    doneStatus: "Erledigt",
+    notDoneStatus: "Nicht erledigt",
+    sectionMorning: "Morgen",
+    sectionMidday: "Mittag",
+    sectionAfterWork: "Nach der Arbeit",
+    tasksDone: "erledigt",
+    uncheckAll: "Alle abwaehlen",
+    noTasksFiltered: "Keine Aufgaben hier mit den aktuellen Filtern.",
+    today: "Heute",
+    thisWeek: "Diese Woche",
+    thisMonth: "Dieser Monat",
+    done: "Erledigt",
+    bySection: "Nach Bereich",
+    daysCompleted: "Abgeschlossene Tage",
+    preferences: "Einstellungen",
+    themeDescription: "Waehle hellen oder dunklen Modus fuer die ganze App.",
+    pointsSystemInfo: "Die App hat jetzt ein Punktesystem zusaetzlich zur Serie.",
+    completedTask: "Erledigte Aufgabe",
+    commentBonus: "Kommentarbonus",
+    savedDay: "Gespeicherter Tag",
+    streakBonus: "Serienbonus",
+    cappedAtDays: "begrenzt auf",
+    days: "Tage",
+    totalScore: "Gesamtpunktzahl",
+    plus: "+",
+    equals: "=",
+    calendarSubtitle: "Plane Ereignisse und verfolge Serien",
+    prev: "Zurueck",
+    next: "Weiter",
+    mon: "Mo",
+    tue: "Di",
+    wed: "Mi",
+    thu: "Do",
+    fri: "Fr",
+    sat: "Sa",
+    sun: "So",
+    editTask: "Aufgabe bearbeiten",
+    addTaskModal: "Aufgabe hinzufugen",
+    titleField: "Titel *",
+    titlePlaceholder: "z. B. Fitness / Lernen / Anruf...",
+    sectionField: "Bereich",
+    categoryField: "Kategorie",
+    categoryPlaceholder: "z. B. Sport / Lernen / Arbeit",
+    commentField: "Kommentar",
+    commentPlaceholder: "Schreibe eine kurze Notiz zu dieser Aufgabe...",
+    cancel: "Abbrechen",
+    save: "Speichern",
+    create: "Erstellen",
+    newEvent: "Neues Ereignis",
+    eventTitle: "Ereignistitel",
+    addEvent: "Ereignis hinzufugen",
+    events: "Ereignisse",
+    noEventsForDay: "Keine Ereignisse fuer diesen Tag.",
+    savedLocally: "Lokal im Browser gespeichert (localStorage).",
+    clickToRename: "Klicken zum Umbenennen",
+    markAllDoneConfirm: "Nicht alle Aufgaben sind erledigt. Alle als erledigt markieren und den Tag speichern?",
+    deleteAllConfirm: "Alle Aufgaben loeschen?",
+    resetAllConfirm: "Alle Aufgaben als unvollstaendig markieren?",
+    resetSectionConfirm: "Alle Aufgaben im Bereich {section} als unvollstaendig markieren?",
+  },
+  it: {
+    appTitle: "Bacheca attivita",
+    board: "Bacheca",
+    summary: "Riepilogo",
+    calendar: "Calendario",
+    settings: "Impostazioni",
+    subtitle: "Mattina / Mezzogiorno / Dopo il lavoro - spunta le attivita, aggiungi commenti e monitora i progressi.",
+    points: "punti",
+    dayStreak: "giorni di streak",
+    openMenu: "Apri menu",
+    addTask: "+ Aggiungi task",
+    saveDay: "Salva giornata",
+    theme: "Tema",
+    language: "Lingua",
+    menu: "Menu",
+    close: "Chiudi",
+    filters: "Filtri",
+    all: "Tutto",
+    showOnlyIncomplete: "Mostra solo incomplete",
+    actions: "Azioni",
+    resetAll: "Resetta tutto",
+    clearAll: "Cancella tutto",
+    completed: "Completata",
+    notDone: "Non completata",
+    noComment: "Nessun commento",
+    edit: "Modifica",
+    delete: "Elimina",
+    doneStatus: "Fatta",
+    notDoneStatus: "Non fatta",
+    sectionMorning: "Mattina",
+    sectionMidday: "Mezzogiorno",
+    sectionAfterWork: "Dopo il lavoro",
+    tasksDone: "fatte",
+    uncheckAll: "Deseleziona tutto",
+    noTasksFiltered: "Nessuna attivita qui con i filtri attuali.",
+    today: "Oggi",
+    thisWeek: "Questa settimana",
+    thisMonth: "Questo mese",
+    done: "Fatte",
+    bySection: "Per sezione",
+    daysCompleted: "Giorni completati",
+    preferences: "Preferenze",
+    themeDescription: "Scegli la modalita chiara o scura per tutta l'app.",
+    pointsSystemInfo: "L'app ora include un sistema di punti oltre allo streak.",
+    completedTask: "Task completata",
+    commentBonus: "Bonus commento",
+    savedDay: "Giornata salvata",
+    streakBonus: "Bonus streak",
+    cappedAtDays: "limitato a",
+    days: "giorni",
+    totalScore: "Punteggio totale",
+    plus: "+",
+    equals: "=",
+    calendarSubtitle: "Pianifica eventi e traccia gli streak",
+    prev: "Prec.",
+    next: "Succ.",
+    mon: "Lun",
+    tue: "Mar",
+    wed: "Mer",
+    thu: "Gio",
+    fri: "Ven",
+    sat: "Sab",
+    sun: "Dom",
+    editTask: "Modifica task",
+    addTaskModal: "Aggiungi task",
+    titleField: "Titolo *",
+    titlePlaceholder: "es. Palestra / Studio / Chiamata...",
+    sectionField: "Sezione",
+    categoryField: "Categoria",
+    categoryPlaceholder: "es. Sport / Studio / Lavoro",
+    commentField: "Commento",
+    commentPlaceholder: "Scrivi una nota rapida su questa task...",
+    cancel: "Annulla",
+    save: "Salva",
+    create: "Crea",
+    newEvent: "Nuovo evento",
+    eventTitle: "Titolo evento",
+    addEvent: "Aggiungi evento",
+    events: "Eventi",
+    noEventsForDay: "Nessun evento per questo giorno.",
+    savedLocally: "Salvato localmente nel browser (localStorage).",
+    clickToRename: "Clicca per rinominare",
+    markAllDoneConfirm: "Non tutti i task sono completati. Segnare tutto come fatto e salvare la giornata?",
+    deleteAllConfirm: "Eliminare tutti i task?",
+    resetAllConfirm: "Segnare tutti i task come incompleti?",
+    resetSectionConfirm: "Segnare tutti i task di {section} come incompleti?",
+  },
+};
+
+function readStoredValue<T>(key: string, fallback: T, validate?: (value: unknown) => value is T) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as unknown;
+    if (validate && !validate(parsed)) return fallback;
+    return parsed as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function readStoredString(key: string, fallback: string) {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
-function sectionLabel(s: Section) {
-  return s === "AfterWork" ? "After Work" : s;
 }
 
 function pct(done: number, total: number) {
@@ -220,12 +783,14 @@ function Modal({
   children,
   onClose,
   theme,
+  closeLabel,
 }: {
   open: boolean;
   title: string;
   children: React.ReactNode;
   onClose: () => void;
   theme: ThemeTokens;
+  closeLabel: string;
 }) {
   if (!open) return null;
   const T = theme;
@@ -288,7 +853,7 @@ function Modal({
               WebkitBackdropFilter: T.blur,
             }}
           >
-            Close
+            {closeLabel}
           </button>
         </div>
         {children}
@@ -359,26 +924,54 @@ function SectionDropZone({
 }
 
 export default function JourneyTaskBoard() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string>("All");
+  const [tasks, setTasks] = useState<Task[]>(() =>
+    readStoredValue<Task[]>(STORAGE_KEY, [], Array.isArray)
+  );
+  const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<"board" | "summary" | "settings" | "calendar">("board");
-  const [themeName, setThemeName] = useState<ThemeName>("Dark Glass");
+  const [themeName, setThemeName] = useState<ThemeName>(() => {
+    const saved = readStoredString("journey_theme", "Dark Glass");
+    return saved in THEMES ? (saved as ThemeName) : "Dark Glass";
+  });
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = readStoredString(LANGUAGE_STORAGE_KEY, "fr");
+    return saved in TRANSLATIONS ? (saved as Language) : "fr";
+  });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [completedDays, setCompletedDays] = useState<string[]>([]);
+  const [completedDays, setCompletedDays] = useState<string[]>(() =>
+    readStoredValue<string[]>("journey_completed_days", [], Array.isArray)
+  );
   const [calendarOffset, setCalendarOffset] = useState(0);
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(() =>
+    readStoredValue<CalendarEvent[]>("journey_calendar_events", [], Array.isArray)
+  );
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date | null>(null);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("09:00");
-  const [headerTitle, setHeaderTitle] = useState("Journey Task Board");
+  const [headerTitle, setHeaderTitle] = useState(() =>
+    readStoredString("journey_header_title", "Journey Task Board")
+  );
   const [editingHeader, setEditingHeader] = useState(false);
   const headerTitleRef = useRef<HTMLSpanElement | null>(null);
-  const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>({
-    Morning: "Morning",
-    Midday: "Midday",
-    AfterWork: "After Work",
+  const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>(() => {
+    const fallback: Record<Section, string> = {
+      Morning: "Morning",
+      Midday: "Midday",
+      AfterWork: "After Work",
+    };
+    const parsed = readStoredValue<Partial<Record<Section, string>>>(
+      "journey_section_titles",
+      {},
+      (value): value is Partial<Record<Section, string>> =>
+        typeof value === "object" && value !== null
+    );
+    return {
+      Morning: parsed.Morning ?? fallback.Morning,
+      Midday: parsed.Midday ?? fallback.Midday,
+      AfterWork: parsed.AfterWork ?? fallback.AfterWork,
+    };
   });
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [editingSectionTitle, setEditingSectionTitle] = useState("");
@@ -396,82 +989,15 @@ export default function JourneyTaskBoard() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
 
-  // Load
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Task[];
-        if (Array.isArray(parsed)) setTasks(parsed);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("journey_completed_days");
-      if (raw) {
-        const parsed = JSON.parse(raw) as string[];
-        if (Array.isArray(parsed)) setCompletedDays(parsed);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("journey_calendar_events");
-      if (raw) {
-        const parsed = JSON.parse(raw) as CalendarEvent[];
-        if (Array.isArray(parsed)) setCalendarEvents(parsed);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("journey_header_title");
-      if (raw) setHeaderTitle(raw);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("journey_section_titles");
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<Record<Section, string>>;
-        if (parsed) {
-          setSectionTitles((prev) => ({
-            Morning: parsed.Morning ?? prev.Morning,
-            Midday: parsed.Midday ?? prev.Midday,
-            AfterWork: parsed.AfterWork ?? prev.AfterWork,
-          }));
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("journey_theme");
-      if (saved && Object.keys(THEMES).includes(saved)) {
-        setThemeName(saved as ThemeName);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
   // Save
+  useEffect(() => {
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    } catch {
+      // ignore
+    }
+  }, [language]);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
@@ -522,11 +1048,28 @@ export default function JourneyTaskBoard() {
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const t of tasks) if (t.category?.trim()) set.add(t.category.trim());
-    return ["All", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
-  }, [tasks]);
-
-  const sections: Section[] = ["Morning", "Midday", "AfterWork"];
+    return [
+      { value: ALL_CATEGORIES, label: TRANSLATIONS[language].all },
+      ...Array.from(set)
+        .sort((a, b) => a.localeCompare(b))
+        .map((category) => ({ value: category, label: category })),
+    ];
+  }, [tasks, language]);
   const T = THEMES[themeName];
+  const locale = LOCALES[language];
+  const t = (key: string) => TRANSLATIONS[language][key] ?? TRANSLATIONS.en[key] ?? key;
+  const sectionName = (s: Section) =>
+    s === "Morning" ? t("sectionMorning") : s === "Midday" ? t("sectionMidday") : t("sectionAfterWork");
+  const displayHeaderTitle =
+    headerTitle === "Journey Task Board" ? t("appTitle") : headerTitle;
+  const displaySectionTitle = (section: Section) => {
+    const value = sectionTitles[section];
+    if (section === "Morning" && value === "Morning") return t("sectionMorning");
+    if (section === "Midday" && value === "Midday") return t("sectionMidday");
+    if (section === "AfterWork" && value === "After Work") return t("sectionAfterWork");
+    return value;
+  };
+
   const isLight = themeName === "Light";
   const danger = isLight
     ? {
@@ -540,10 +1083,10 @@ export default function JourneyTaskBoard() {
         text: "rgba(255,225,225,0.95)",
       };
 
-  const renderTaskCard = (t: Task, isOverlay = false) => (
+  const renderTaskCard = (task: Task, isOverlay = false) => (
     <div
       style={{
-        border: t.done
+        border: task.done
           ? T.border
           : isLight
             ? "1px solid rgba(180,60,60,0.35)"
@@ -553,19 +1096,19 @@ export default function JourneyTaskBoard() {
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        background: t.done
+        background: task.done
           ? T.card
           : isLight
             ? "linear-gradient(180deg, rgba(255,230,230,0.98) 0%, rgba(245,210,210,0.98) 100%)"
             : "linear-gradient(180deg, rgba(46,26,26,0.98) 0%, rgba(26,16,16,0.98) 100%)",
-        color: t.done
+        color: task.done
           ? T.text
           : isLight
             ? "rgba(60,20,20,0.9)"
             : T.text,
         boxShadow: isOverlay
           ? "0 24px 60px rgba(0,0,0,0.45)"
-          : t.done
+          : task.done
             ? isLight
               ? "0 10px 22px rgba(0,0,0,0.12)"
               : "0 12px 26px rgba(0,0,0,0.35)"
@@ -589,25 +1132,25 @@ export default function JourneyTaskBoard() {
           width: 6,
           borderTopLeftRadius: 16,
           borderBottomLeftRadius: 16,
-          background: t.done
+          background: task.done
             ? "linear-gradient(180deg, rgba(34,197,94,0.6) 0%, rgba(22,163,74,0.4) 100%)"
             : isLight
               ? "linear-gradient(180deg, rgba(185,28,28,0.6) 0%, rgba(127,29,29,0.5) 100%)"
               : "linear-gradient(180deg, rgba(239,68,68,0.8) 0%, rgba(185,28,28,0.6) 100%)",
-          opacity: t.done ? 0.45 : 0.9,
+          opacity: task.done ? 0.45 : 0.9,
         }}
       />
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         <input
           type="checkbox"
-          checked={t.done}
-          onChange={() => toggleDone(t.id)}
+          checked={task.done}
+          onChange={() => toggleDone(task.id)}
           onPointerDown={(e) => e.stopPropagation()}
           style={{
             marginTop: 4,
             width: 20,
             height: 20,
-            accentColor: t.done ? "#22c55e" : "#ef4444",
+            accentColor: task.done ? "#22c55e" : "#ef4444",
             cursor: "pointer",
           }}
         />
@@ -616,15 +1159,15 @@ export default function JourneyTaskBoard() {
           <div
             style={{
               fontWeight: 800,
-              textDecoration: t.done ? "line-through" : "none",
-              opacity: t.done ? 0.65 : 1,
+              textDecoration: task.done ? "line-through" : "none",
+              opacity: task.done ? 0.65 : 1,
             }}
           >
-            {t.title}
+            {task.title}
           </div>
 
           <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-            {t.category ? (
+            {task.category ? (
               <span
                 style={{
                   fontSize: 12,
@@ -635,7 +1178,7 @@ export default function JourneyTaskBoard() {
                   opacity: 0.9,
                 }}
               >
-                {t.category}
+                {task.category}
               </span>
             ) : null}
 
@@ -646,21 +1189,21 @@ export default function JourneyTaskBoard() {
                 gap: 6,
                 padding: "2px 8px",
                 borderRadius: 999,
-                background: t.done
+                background: task.done
                   ? "rgba(34,197,94,0.12)"
                   : isLight
                     ? "rgba(239,68,68,0.16)"
                     : "rgba(239,68,68,0.14)",
-                border: t.done
+                border: task.done
                   ? "1px solid rgba(34,197,94,0.25)"
                   : isLight
                     ? "1px solid rgba(185,28,28,0.35)"
                     : "1px solid rgba(239,68,68,0.3)",
               }}
             >
-              {t.done ? <IconCheck /> : <IconX />}
+              {task.done ? <IconCheck /> : <IconX />}
               <span style={{ fontSize: 12, opacity: 0.75 }}>
-                {t.done ? "Completed" : "Not done"}
+                {task.done ? t("completed") : t("notDone")}
               </span>
             </span>
 
@@ -671,34 +1214,34 @@ export default function JourneyTaskBoard() {
                 gap: 6,
                 padding: "2px 8px",
                 borderRadius: 999,
-                background: t.done
+                background: task.done
                   ? "rgba(250,204,21,0.16)"
                   : isLight
                     ? "rgba(0,0,0,0.06)"
                     : "rgba(255,255,255,0.06)",
-                border: t.done ? "1px solid rgba(234,179,8,0.32)" : T.border,
+                border: task.done ? "1px solid rgba(234,179,8,0.32)" : T.border,
                 fontSize: 12,
                 fontWeight: 700,
               }}
             >
-              +{taskPoints(t)} pts
+              +{taskPoints(task)} pts
             </span>
           </div>
 
-          {t.comment ? (
+          {task.comment ? (
             <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85 }}>
-              💬 {t.comment}
+              💬 {task.comment}
             </div>
           ) : (
             <div style={{ marginTop: 8, fontSize: 13, opacity: 0.5 }}>
-              💬 No comment
+              💬 {t("noComment")}
             </div>
           )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <button
-            onClick={() => openEdit(t)}
+            onClick={() => openEdit(task)}
             onPointerDown={(e) => e.stopPropagation()}
             style={{
               border: T.border,
@@ -710,10 +1253,10 @@ export default function JourneyTaskBoard() {
               color: T.text,
             }}
           >
-            Edit
+            {t("edit")}
           </button>
           <button
-            onClick={() => removeTask(t.id)}
+            onClick={() => removeTask(task.id)}
             onPointerDown={(e) => e.stopPropagation()}
             style={{
               border: danger.border,
@@ -725,7 +1268,7 @@ export default function JourneyTaskBoard() {
               color: danger.text,
             }}
           >
-            Delete
+            {t("delete")}
           </button>
         </div>
       </div>
@@ -734,8 +1277,8 @@ export default function JourneyTaskBoard() {
 
   const filteredTasks = useMemo(() => {
     return tasks
-      .filter((t) => (categoryFilter === "All" ? true : t.category === categoryFilter))
-      .filter((t) => (onlyIncomplete ? !t.done : true))
+      .filter((task) => (categoryFilter === ALL_CATEGORIES ? true : task.category === categoryFilter))
+      .filter((task) => (onlyIncomplete ? !task.done : true))
       .sort((a, b) => {
         const ao = a.order ?? 999999;
         const bo = b.order ?? 999999;
@@ -750,7 +1293,7 @@ export default function JourneyTaskBoard() {
       Midday: { done: 0, total: 0, pct: 0 },
       AfterWork: { done: 0, total: 0, pct: 0 },
     };
-    for (const s of sections) {
+    for (const s of SECTIONS) {
       const list = filteredTasks.filter((t) => t.section === s);
       const total = list.length;
       const done = list.filter((t) => t.done).length;
@@ -787,7 +1330,7 @@ export default function JourneyTaskBoard() {
         const ts = new Date(y, m, d).getTime();
         return ts >= fromTs;
       }).length;
-      const bySection = sections.map((s) => {
+      const bySection = SECTIONS.map((s) => {
         const sectionList = list.filter((t) => t.section === s);
         const sectionTotal = sectionList.length;
         const sectionDone = sectionList.filter((t) => t.done).length;
@@ -801,7 +1344,7 @@ export default function JourneyTaskBoard() {
       week: buildStats(startOfWeek),
       month: buildStats(startOfMonth),
     };
-  }, [tasks, sections, completedDays]);
+  }, [tasks, completedDays]);
 
   const streakDays = useMemo(() => {
     if (completedDays.length === 0) return 0;
@@ -895,19 +1438,19 @@ export default function JourneyTaskBoard() {
     return {
       year,
       month,
-      monthLabel: view.toLocaleString(undefined, { month: "long", year: "numeric" }),
+      monthLabel: view.toLocaleString(locale, { month: "long", year: "numeric" }),
       cells,
       isCompleted,
       eventsCountByDay,
     };
-  }, [calendarOffset, completedDays, calendarEvents]);
+  }, [calendarOffset, completedDays, calendarEvents, locale]);
 
   function saveDayCompletion() {
     const today = new Date();
     const key = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
     const allDone = tasks.length > 0 && tasks.every((t) => t.done);
     if (!allDone) {
-      if (!confirm("Not all tasks are done. Mark all as done and save the day?")) return;
+      if (!confirm(t("markAllDoneConfirm"))) return;
       setTasks((prev) => prev.map((t) => ({ ...t, done: true })));
     }
     setCompletedDays((prev) => (prev.includes(key) ? prev : [...prev, key]));
@@ -1024,17 +1567,17 @@ export default function JourneyTaskBoard() {
   }
 
   function clearAll() {
-    if (!confirm("Delete all tasks?")) return;
+    if (!confirm(t("deleteAllConfirm"))) return;
     setTasks([]);
   }
 
   function resetAllToIncomplete() {
-    if (!confirm("Mark all tasks as incomplete?")) return;
+    if (!confirm(t("resetAllConfirm"))) return;
     setTasks((prev) => prev.map((t) => ({ ...t, done: false })));
   }
 
   function resetSectionToIncomplete(section: Section) {
-    if (!confirm(`Mark all ${sectionLabel(section)} tasks as incomplete?`)) return;
+    if (!confirm(t("resetSectionConfirm").replace("{section}", sectionName(section)))) return;
     setTasks((prev) =>
       prev.map((t) => (t.section === section ? { ...t, done: false } : t))
     );
@@ -1230,17 +1773,17 @@ export default function JourneyTaskBoard() {
           }}
         >
           {([
-            { key: "board", label: "Board" },
-            { key: "summary", label: "Summary" },
-            { key: "calendar", label: "Calendar" },
-            { key: "settings", label: "Settings" },
-          ] as const).map((t) => (
+            { key: "board", label: t("board") },
+            { key: "summary", label: t("summary") },
+            { key: "calendar", label: t("calendar") },
+            { key: "settings", label: t("settings") },
+          ] as const).map((tab) => (
             <button
-              key={t.key}
-              onClick={() => setActiveView(t.key)}
+              key={tab.key}
+              onClick={() => setActiveView(tab.key)}
               style={{
                 border: T.border,
-                background: activeView === t.key ? T.card : "transparent",
+                background: activeView === tab.key ? T.card : "transparent",
                 color: T.text,
                 borderRadius: 10,
                 padding: "7px 12px",
@@ -1249,7 +1792,7 @@ export default function JourneyTaskBoard() {
                 fontSize: 12,
               }}
             >
-              {t.label}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -1321,12 +1864,12 @@ export default function JourneyTaskBoard() {
                   cursor: "text",
                   display: "inline-block",
                 }}
-                title="Click to rename"
+                title={t("clickToRename")}
               >
-                {headerTitle}
+                {displayHeaderTitle}
               </span>
               <div style={{ fontSize: 13, opacity: 0.7, color: T.muted }}>
-                Morning / Midday / After Work — tick tasks, add comments, track progress.
+                {t("subtitle")}
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -1346,7 +1889,7 @@ export default function JourneyTaskBoard() {
                 <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>
                   {scoreStats.grandTotal}
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.8 }}>points</div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>{t("points")}</div>
               </div>
               <div
                 style={{
@@ -1364,7 +1907,7 @@ export default function JourneyTaskBoard() {
                 <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>
                   {streakDays}
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.8 }}>day streak</div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>{t("dayStreak")}</div>
               </div>
             </div>
           </div>
@@ -1391,7 +1934,7 @@ export default function JourneyTaskBoard() {
                 fontWeight: 800,
                 letterSpacing: "0.08em",
               }}
-              aria-label="Open menu"
+              aria-label={t("openMenu")}
             >
               ≡
             </button>
@@ -1407,7 +1950,7 @@ export default function JourneyTaskBoard() {
                 cursor: "pointer",
               }}
             >
-              + Add Task
+              {t("addTask")}
             </button>
             <button
               onClick={saveDayCompletion}
@@ -1422,7 +1965,7 @@ export default function JourneyTaskBoard() {
                 cursor: "pointer",
               }}
             >
-              Save Day
+              {t("saveDay")}
             </button>
 
             <select
@@ -1438,7 +1981,7 @@ export default function JourneyTaskBoard() {
                 backdropFilter: T.blur,
                 WebkitBackdropFilter: T.blur,
               }}
-              aria-label="Theme"
+              aria-label={t("theme")}
             >
               <option value="Dark Glass">Dark Glass</option>
               <option value="Dark Matte">Dark Matte</option>
@@ -1477,7 +2020,7 @@ export default function JourneyTaskBoard() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 16, fontWeight: 900 }}>Menu</div>
+                <div style={{ fontSize: 16, fontWeight: 900 }}>{t("menu")}</div>
                 <button
                   onClick={() => setMenuOpen(false)}
                   style={{
@@ -1490,11 +2033,30 @@ export default function JourneyTaskBoard() {
                     fontWeight: 700,
                   }}
                 >
-                  Close
+                  {t("close")}
             </button>
           </div>
 
-              <div style={{ fontSize: 12, opacity: 0.7 }}>Filters</div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>{t("language")}</div>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: T.border,
+                  background: T.panel,
+                  color: T.text,
+                }}
+              >
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <div style={{ fontSize: 12, opacity: 0.7 }}>{t("filters")}</div>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
@@ -1506,9 +2068,9 @@ export default function JourneyTaskBoard() {
                   color: T.text,
                 }}
               >
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {categories.map((category) => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
                   </option>
                 ))}
               </select>
@@ -1518,10 +2080,10 @@ export default function JourneyTaskBoard() {
                   checked={onlyIncomplete}
                   onChange={(e) => setOnlyIncomplete(e.target.checked)}
                 />
-                Show only incomplete
+                {t("showOnlyIncomplete")}
               </label>
 
-              <div style={{ fontSize: 12, opacity: 0.7 }}>Actions</div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>{t("actions")}</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button
                   onClick={() => {
@@ -1539,7 +2101,7 @@ export default function JourneyTaskBoard() {
                     fontSize: 12,
                   }}
                 >
-                  Save day
+                  {t("saveDay")}
                 </button>
                 <button
                   onClick={() => {
@@ -1557,7 +2119,7 @@ export default function JourneyTaskBoard() {
                     fontSize: 12,
                   }}
                 >
-                  Reset all
+                  {t("resetAll")}
                 </button>
                 <button
                   onClick={() => {
@@ -1575,7 +2137,7 @@ export default function JourneyTaskBoard() {
                     fontSize: 12,
                   }}
                 >
-                  Clear all
+                  {t("clearAll")}
                 </button>
               </div>
             </div>
@@ -1598,7 +2160,7 @@ export default function JourneyTaskBoard() {
                 alignItems: "start",
               }}
             >
-              {sections.map((s) => {
+              {SECTIONS.map((s) => {
                 const list = filteredTasks.filter((t) => t.section === s);
                 const st = sectionStats[s];
 
@@ -1658,9 +2220,9 @@ export default function JourneyTaskBoard() {
                           cursor: "text",
                           display: "inline-block",
                         }}
-                        title="Click to rename"
+                        title={t("clickToRename")}
                       >
-                        {sectionTitles[s]}
+                        {displaySectionTitle(s)}
                       </span>
                       <div
                         style={{
@@ -1669,7 +2231,7 @@ export default function JourneyTaskBoard() {
                           color: T.muted,
                         }}
                       >
-                        {st.done}/{st.total} done • {st.pct}%
+                        {st.done}/{st.total} {t("tasksDone")} • {st.pct}%
                       </div>
                     </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1686,7 +2248,7 @@ export default function JourneyTaskBoard() {
                           fontSize: 12,
                         }}
                       >
-                        Uncheck all
+                        {t("uncheckAll")}
                       </button>
                       <div
                         style={{
@@ -1709,7 +2271,7 @@ export default function JourneyTaskBoard() {
                           color: T.muted,
                         }}
                       >
-                        No tasks here (with current filters).
+                        {t("noTasksFiltered")}
                       </div>
                     ) : (
                       <SortableContext
@@ -1747,9 +2309,9 @@ export default function JourneyTaskBoard() {
           >
             {(
               [
-                { key: "day", label: "Today", data: summaryStats.day },
-                { key: "week", label: "This Week", data: summaryStats.week },
-                { key: "month", label: "This Month", data: summaryStats.month },
+                { key: "day", label: t("today"), data: summaryStats.day },
+                { key: "week", label: t("thisWeek"), data: summaryStats.week },
+                { key: "month", label: t("thisMonth"), data: summaryStats.month },
               ] as const
             ).map((p) => (
               <div
@@ -1782,7 +2344,7 @@ export default function JourneyTaskBoard() {
                     border: "1px solid rgba(234,179,8,0.3)",
                   }}
                 >
-                  <div style={{ fontSize: 12, opacity: 0.72 }}>Points</div>
+                  <div style={{ fontSize: 12, opacity: 0.72 }}>{t("points")}</div>
                   <div style={{ fontSize: 20, fontWeight: 900 }}>
                     {p.key === "day"
                       ? scoreStats.today
@@ -1802,7 +2364,7 @@ export default function JourneyTaskBoard() {
                       WebkitBackdropFilter: T.blur,
                     }}
                   >
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>Done</div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>{t("done")}</div>
                     <div style={{ fontSize: 20, fontWeight: 800 }}>{p.data.done}</div>
                   </div>
                   <div
@@ -1815,7 +2377,7 @@ export default function JourneyTaskBoard() {
                       WebkitBackdropFilter: T.blur,
                     }}
                   >
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>Not done</div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>{t("notDone")}</div>
                     <div style={{ fontSize: 20, fontWeight: 800 }}>{p.data.notDone}</div>
                   </div>
                 </div>
@@ -1829,14 +2391,14 @@ export default function JourneyTaskBoard() {
                     WebkitBackdropFilter: T.blur,
                   }}
                 >
-                  <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>By section</div>
+                  <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>{t("bySection")}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {p.data.bySection.map((row) => (
                       <div
                         key={row.section}
                         style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}
                       >
-                        <span>{sectionLabel(row.section)}</span>
+                        <span>{sectionName(row.section)}</span>
                         <span>
                           {row.done}/{row.total}
                         </span>
@@ -1845,7 +2407,7 @@ export default function JourneyTaskBoard() {
                   </div>
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.75 }}>
-                  Days completed: {p.data.daysCompleted}
+                  {t("daysCompleted")}: {p.data.daysCompleted}
                 </div>
               </div>
             ))}
@@ -1873,9 +2435,9 @@ export default function JourneyTaskBoard() {
                 WebkitBackdropFilter: T.blur,
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 900 }}>Theme</div>
+              <div style={{ fontSize: 16, fontWeight: 900 }}>{t("theme")}</div>
               <div style={{ fontSize: 13, opacity: 0.7 }}>
-                Choose light or dark mode for the whole app.
+                {t("themeDescription")}
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button
@@ -1938,22 +2500,22 @@ export default function JourneyTaskBoard() {
                 WebkitBackdropFilter: T.blur,
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 900 }}>Preferences</div>
+              <div style={{ fontSize: 16, fontWeight: 900 }}>{t("preferences")}</div>
               <div style={{ fontSize: 13, opacity: 0.7 }}>
-                The app now includes a point system on top of streak tracking.
+                {t("pointsSystemInfo")}
               </div>
               <div style={{ fontSize: 12, opacity: 0.7, lineHeight: 1.6 }}>
-                Completed task: +{POINTS.taskDone}
+                {t("completedTask")}: +{POINTS.taskDone}
                 <br />
-                Comment bonus: +{POINTS.commentedTaskBonus}
+                {t("commentBonus")}: +{POINTS.commentedTaskBonus}
                 <br />
-                Saved day: +{POINTS.completedDay}
+                {t("savedDay")}: +{POINTS.completedDay}
                 <br />
-                Streak bonus: +{POINTS.streakPerDay}/day, capped at {POINTS.streakCap} days
+                {t("streakBonus")}: +{POINTS.streakPerDay}/{t("dayStreak")}, {t("cappedAtDays")} {POINTS.streakCap} {t("days")}
               </div>
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                Total score: {scoreStats.total} + streak bonus {scoreStats.streakBonus} ={" "}
-                {scoreStats.grandTotal} points
+                {t("totalScore")}: {scoreStats.total} {t("plus")} {scoreStats.streakBonus} {t("equals")}{" "}
+                {scoreStats.grandTotal} {t("points")}
               </div>
             </div>
           </div>
@@ -1995,8 +2557,8 @@ export default function JourneyTaskBoard() {
                   📅
                 </div>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 900 }}>Calendar</div>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>Plan events and track streaks</div>
+                  <div style={{ fontSize: 18, fontWeight: 900 }}>{t("calendar")}</div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>{t("calendarSubtitle")}</div>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -2012,7 +2574,7 @@ export default function JourneyTaskBoard() {
                     color: T.text,
                   }}
                 >
-                  Prev
+                  {t("prev")}
                 </button>
                 <button
                   onClick={() => setCalendarOffset(0)}
@@ -2026,7 +2588,7 @@ export default function JourneyTaskBoard() {
                     color: T.text,
                   }}
                 >
-                  Today
+                  {t("today")}
                 </button>
                 <button
                   onClick={() => setCalendarOffset((v) => v + 1)}
@@ -2040,7 +2602,7 @@ export default function JourneyTaskBoard() {
                     color: T.text,
                   }}
                 >
-                  Next
+                  {t("next")}
                 </button>
               </div>
             </div>
@@ -2068,7 +2630,7 @@ export default function JourneyTaskBoard() {
                   const value = `${d.getFullYear()}-${d.getMonth()}`;
                   return (
                     <option key={value} value={value}>
-                      {d.toLocaleString(undefined, { month: "long", year: "numeric" })}
+                      {d.toLocaleString(locale, { month: "long", year: "numeric" })}
                     </option>
                   );
                 })}
@@ -2088,7 +2650,7 @@ export default function JourneyTaskBoard() {
                 WebkitBackdropFilter: T.blur,
               }}
             >
-              {(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const).map((d) => (
+              {([t("mon"), t("tue"), t("wed"), t("thu"), t("fri"), t("sat"), t("sun")] as const).map((d) => (
                 <div
                   key={d}
                   style={{
@@ -2148,9 +2710,10 @@ export default function JourneyTaskBoard() {
 
         <Modal
           open={modalOpen}
-          title={editingId ? "Edit task" : "Add task"}
+          title={editingId ? t("editTask") : t("addTaskModal")}
           onClose={closeModal}
           theme={T}
+          closeLabel={t("close")}
         >
           <form
             onSubmit={(e) => {
@@ -2171,11 +2734,11 @@ export default function JourneyTaskBoard() {
             style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 14 }}
           >
             <div style={{ gridColumn: "1 / -1" }}>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Title *</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>{t("titleField")}</div>
               <input
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
-                placeholder="e.g. Gym / Study / Call…"
+                placeholder={t("titlePlaceholder")}
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -2189,7 +2752,7 @@ export default function JourneyTaskBoard() {
             </div>
 
             <div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Section</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>{t("sectionField")}</div>
               <select
                 value={formSection}
                 onChange={(e) => setFormSection(e.target.value as Section)}
@@ -2203,18 +2766,18 @@ export default function JourneyTaskBoard() {
                   boxSizing: "border-box",
                 }}
               >
-                <option value="Morning">Morning</option>
-                <option value="Midday">Midday</option>
-                <option value="AfterWork">After Work</option>
+                <option value="Morning">{t("sectionMorning")}</option>
+                <option value="Midday">{t("sectionMidday")}</option>
+                <option value="AfterWork">{t("sectionAfterWork")}</option>
               </select>
             </div>
 
             <div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Category</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>{t("categoryField")}</div>
               <input
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
-                placeholder="e.g. Sport / Study / Work"
+                placeholder={t("categoryPlaceholder")}
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -2228,11 +2791,11 @@ export default function JourneyTaskBoard() {
             </div>
 
             <div style={{ gridColumn: "1 / -1" }}>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Comment</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>{t("commentField")}</div>
               <textarea
                 value={formComment}
                 onChange={(e) => setFormComment(e.target.value)}
-                placeholder="Write a quick note about this task…"
+                placeholder={t("commentPlaceholder")}
                 rows={4}
                 style={{
                   width: "100%",
@@ -2261,7 +2824,7 @@ export default function JourneyTaskBoard() {
                 }}
                 type="button"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="submit"
@@ -2276,7 +2839,7 @@ export default function JourneyTaskBoard() {
                   
                 }}
               >
-                {editingId ? "Save" : "Create"}
+                {editingId ? t("save") : t("create")}
               </button>
             </div>
           </form>
@@ -2286,16 +2849,17 @@ export default function JourneyTaskBoard() {
           open={calendarModalOpen}
           title={
             calendarSelectedDate
-              ? calendarSelectedDate.toLocaleDateString(undefined, {
+              ? calendarSelectedDate.toLocaleDateString(locale, {
                   weekday: "short",
                   year: "numeric",
                   month: "short",
                   day: "numeric",
                 })
-              : "New event"
+              : t("newEvent")
           }
           onClose={() => setCalendarModalOpen(false)}
           theme={T}
+          closeLabel={t("close")}
         >
           <form
             onSubmit={(e) => {
@@ -2308,7 +2872,7 @@ export default function JourneyTaskBoard() {
               <input
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
-                placeholder="Event title"
+                placeholder={t("eventTitle")}
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -2349,7 +2913,7 @@ export default function JourneyTaskBoard() {
                   color: T.text,
                 }}
               >
-                Close
+                {t("close")}
               </button>
               <button
                 type="submit"
@@ -2363,13 +2927,13 @@ export default function JourneyTaskBoard() {
                   fontWeight: 800,
                 }}
               >
-                Add event
+                {t("addEvent")}
               </button>
             </div>
 
             {calendarSelectedDate ? (
               <div style={{ marginTop: 6 }}>
-                <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>Events</div>
+                <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>{t("events")}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {calendarEvents
                     .filter((e) =>
@@ -2408,7 +2972,7 @@ export default function JourneyTaskBoard() {
                             color: danger.text,
                           }}
                         >
-                          Delete
+                          {t("delete")}
                         </button>
                       </div>
                     ))}
@@ -2416,7 +2980,7 @@ export default function JourneyTaskBoard() {
                     e.dateKey ===
                     `${calendarSelectedDate.getFullYear()}-${calendarSelectedDate.getMonth()}-${calendarSelectedDate.getDate()}`
                   ).length === 0 ? (
-                    <div style={{ fontSize: 12, opacity: 0.6 }}>No events for this day.</div>
+                    <div style={{ fontSize: 12, opacity: 0.6 }}>{t("noEventsForDay")}</div>
                   ) : null}
                 </div>
               </div>
@@ -2425,7 +2989,7 @@ export default function JourneyTaskBoard() {
         </Modal>
 
         <div style={{ fontSize: 12, opacity: 0.6, textAlign: "center", paddingBottom: 12 }}>
-          Saved locally in your browser (localStorage).
+          {t("savedLocally")}
         </div>
       </div>
 

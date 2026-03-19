@@ -1409,6 +1409,21 @@ export default function JourneyTaskBoard() {
             >
               + Add Task
             </button>
+            <button
+              onClick={saveDayCompletion}
+              style={{
+                padding: "9px 12px",
+                borderRadius: 12,
+                border: "1px solid rgba(234,179,8,0.32)",
+                background:
+                  "linear-gradient(180deg, rgba(250,204,21,0.22) 0%, rgba(234,179,8,0.14) 100%)",
+                color: T.text,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              Save Day
+            </button>
 
             <select
               value={themeName}

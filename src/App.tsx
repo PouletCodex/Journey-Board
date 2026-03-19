@@ -122,8 +122,6 @@ const CODE_MAP_ENTRIES = [
 ] as const;
 const LETTER_TO_CODE = new Map<string, string>(CODE_MAP_ENTRIES.map(([code, letter]) => [letter, code]));
 const CODE_TO_LETTER = new Map<string, string>(CODE_MAP_ENTRIES);
-const CODE_LEGEND_PASSWORD = encodeCustomMessage("MOT DE PASSE");
-
 const LANGUAGE_OPTIONS: Array<{ value: Language; label: string }> = [
   { value: "en", label: "English" },
   { value: "fr", label: "Francais" },
@@ -242,6 +240,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     openCodeLegend: "Open code legend",
     unlockCodeLegend: "Unlock code legend",
     codedPassword: "Coded password",
+    codedPasswordHint: 'Use the coded version of "password" in the current language.',
+    codePasswordPhrase: "PASSWORD",
     codedPasswordPlaceholder: "Enter the coded password...",
     unlock: "Unlock",
     wrongCodePassword: "Wrong coded password.",
@@ -347,6 +347,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     openCodeLegend: "Voir la correspondance",
     unlockCodeLegend: "Debloquer la correspondance",
     codedPassword: "Mot de passe code",
+    codedPasswordHint: 'Utilise la version codee de "mot de passe" dans la langue actuelle.',
+    codePasswordPhrase: "MOT DE PASSE",
     codedPasswordPlaceholder: "Ecris le mot de passe en code...",
     unlock: "Debloquer",
     wrongCodePassword: "Mot de passe code incorrect.",
@@ -439,6 +441,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     deleteAllConfirm: "Eliminar todas las tareas?",
     resetAllConfirm: "Marcar todas las tareas como incompletas?",
     resetSectionConfirm: "Marcar todas las tareas de {section} como incompletas?",
+    codedPasswordHint: 'Usa la version codificada de "contrasena" en el idioma actual.',
+    codePasswordPhrase: "CONTRASENA",
   },
   pt: {
     appTitle: "Quadro de tarefas",
@@ -526,6 +530,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     deleteAllConfirm: "Apagar todas as tarefas?",
     resetAllConfirm: "Marcar todas as tarefas como incompletas?",
     resetSectionConfirm: "Marcar todas as tarefas de {section} como incompletas?",
+    codedPasswordHint: 'Usa a versao codificada de "palavra passe" no idioma atual.',
+    codePasswordPhrase: "PALAVRA PASSE",
   },
   de: {
     appTitle: "Aufgabenboard",
@@ -613,6 +619,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     deleteAllConfirm: "Alle Aufgaben loeschen?",
     resetAllConfirm: "Alle Aufgaben als unvollstaendig markieren?",
     resetSectionConfirm: "Alle Aufgaben im Bereich {section} als unvollstaendig markieren?",
+    codedPasswordHint: 'Nutze die codierte Version von "passwort" in der aktuellen Sprache.',
+    codePasswordPhrase: "PASSWORT",
   },
   it: {
     appTitle: "Bacheca attivita",
@@ -700,6 +708,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     deleteAllConfirm: "Eliminare tutti i task?",
     resetAllConfirm: "Segnare tutti i task come incompleti?",
     resetSectionConfirm: "Segnare tutti i task di {section} come incompleti?",
+    codedPasswordHint: 'Usa la versione codificata di "password" nella lingua attuale.',
+    codePasswordPhrase: "PASSWORD",
   },
 };
 
@@ -1157,6 +1167,7 @@ export default function JourneyTaskBoard() {
   const T = THEMES[themeName];
   const locale = LOCALES[language];
   const t = (key: string) => TRANSLATIONS[language][key] ?? TRANSLATIONS.en[key] ?? key;
+  const codeLegendPassword = encodeCustomMessage(t("codePasswordPhrase"));
   const sectionName = (s: Section) =>
     s === "Morning" ? t("sectionMorning") : s === "Midday" ? t("sectionMidday") : t("sectionAfterWork");
   const displayHeaderTitle =
@@ -1604,7 +1615,7 @@ export default function JourneyTaskBoard() {
 
   function unlockCodeLegend() {
     const normalized = codedLegendPassword.trim();
-    if (normalized !== CODE_LEGEND_PASSWORD) {
+    if (normalized !== codeLegendPassword) {
       setCodeLegendError(t("wrongCodePassword"));
       return;
     }
@@ -3260,9 +3271,8 @@ export default function JourneyTaskBoard() {
             }}
             style={{ display: "flex", flexDirection: "column", gap: 12 }}
           >
-            <div style={{ fontSize: 12, opacity: 0.72 }}>
-              {t("codedPassword")}
-            </div>
+            <div style={{ fontSize: 12, opacity: 0.72 }}>{t("codedPassword")}</div>
+            <div style={{ fontSize: 12, opacity: 0.6 }}>{t("codedPasswordHint")}</div>
             <input
               value={codedLegendPassword}
               onChange={(e) => {

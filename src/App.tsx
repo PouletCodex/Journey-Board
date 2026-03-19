@@ -122,6 +122,7 @@ const CODE_MAP_ENTRIES = [
 ] as const;
 const LETTER_TO_CODE = new Map<string, string>(CODE_MAP_ENTRIES.map(([code, letter]) => [letter, code]));
 const CODE_TO_LETTER = new Map<string, string>(CODE_MAP_ENTRIES);
+const CODE_LEGEND_PASSWORD = encodeCustomMessage("MOT DE PASSE");
 
 const LANGUAGE_OPTIONS: Array<{ value: Language; label: string }> = [
   { value: "en", label: "English" },
@@ -238,6 +239,12 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     clear: "Clear",
     codeLegend: "Legend",
     codeLegendHint: "Your custom alphabet used for encoding and decoding.",
+    openCodeLegend: "Open code legend",
+    unlockCodeLegend: "Unlock code legend",
+    codedPassword: "Coded password",
+    codedPasswordPlaceholder: "Enter the coded password...",
+    unlock: "Unlock",
+    wrongCodePassword: "Wrong coded password.",
     plainMessagePlaceholder: "Write your normal message here...",
     codedMessagePlaceholder: "Your coded message appears here...",
   },
@@ -337,6 +344,12 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     clear: "Vider",
     codeLegend: "Correspondance",
     codeLegendHint: "Ton alphabet personnalise pour encoder et decoder.",
+    openCodeLegend: "Voir la correspondance",
+    unlockCodeLegend: "Debloquer la correspondance",
+    codedPassword: "Mot de passe code",
+    codedPasswordPlaceholder: "Ecris le mot de passe en code...",
+    unlock: "Debloquer",
+    wrongCodePassword: "Mot de passe code incorrect.",
     plainMessagePlaceholder: "Ecris ton message normal ici...",
     codedMessagePlaceholder: "Ton message code apparait ici...",
   },
@@ -1027,11 +1040,15 @@ export default function JourneyTaskBoard() {
     readStoredValue<CalendarEvent[]>("journey_calendar_events", [], Array.isArray)
   );
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [codeLegendModalOpen, setCodeLegendModalOpen] = useState(false);
+  const [codeLegendUnlockModalOpen, setCodeLegendUnlockModalOpen] = useState(false);
   const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date | null>(null);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("09:00");
   const [plainCodeMessage, setPlainCodeMessage] = useState("");
   const [encodedCodeMessage, setEncodedCodeMessage] = useState("");
+  const [codedLegendPassword, setCodedLegendPassword] = useState("");
+  const [codeLegendError, setCodeLegendError] = useState("");
   const [headerTitle, setHeaderTitle] = useState(() =>
     readStoredString("journey_header_title", "Journey Task Board")
   );
@@ -1577,6 +1594,22 @@ export default function JourneyTaskBoard() {
   function clearCodeMessages() {
     setPlainCodeMessage("");
     setEncodedCodeMessage("");
+  }
+
+  function openCodeLegendUnlock() {
+    setCodedLegendPassword("");
+    setCodeLegendError("");
+    setCodeLegendUnlockModalOpen(true);
+  }
+
+  function unlockCodeLegend() {
+    const normalized = codedLegendPassword.trim();
+    if (normalized !== CODE_LEGEND_PASSWORD) {
+      setCodeLegendError(t("wrongCodePassword"));
+      return;
+    }
+    setCodeLegendUnlockModalOpen(false);
+    setCodeLegendModalOpen(true);
   }
 
   function saveHeaderTitle(next?: string) {
@@ -2511,177 +2544,115 @@ export default function JourneyTaskBoard() {
         ) : activeView === "codes" ? (
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1.2fr 0.8fr",
-              gap: 16,
-              alignItems: "start",
+              background: T.panel,
+              borderRadius: 20,
+              padding: 18,
+              border: T.border,
+              boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+              color: T.text,
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              backdropFilter: T.blur,
+              WebkitBackdropFilter: T.blur,
             }}
           >
-            <div
-              style={{
-                background: T.panel,
-                borderRadius: 20,
-                padding: 18,
-                border: T.border,
-                boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
-                color: T.text,
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-                backdropFilter: T.blur,
-                WebkitBackdropFilter: T.blur,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 6 }}>
-                  {t("codesTitle")}
-                </div>
-                <div style={{ fontSize: 13, opacity: 0.72 }}>{t("codesSubtitle")}</div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 6 }}>
+                {t("codesTitle")}
               </div>
-
-              <div>
-                <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
-                  {t("plainMessage")}
-                </div>
-                <textarea
-                  value={plainCodeMessage}
-                  onChange={(e) => setPlainCodeMessage(e.target.value)}
-                  placeholder={t("plainMessagePlaceholder")}
-                  rows={7}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    borderRadius: 14,
-                    border: T.border,
-                    background: T.card,
-                    color: T.text,
-                    resize: "vertical",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  onClick={encodeCodeMessage}
-                  style={{
-                    border: T.border,
-                    background: T.card,
-                    color: T.text,
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    cursor: "pointer",
-                    fontWeight: 800,
-                  }}
-                >
-                  {t("encode")}
-                </button>
-                <button
-                  onClick={decodeCodeMessage}
-                  style={{
-                    border: T.border,
-                    background: T.panel,
-                    color: T.text,
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  {t("decode")}
-                </button>
-                <button
-                  onClick={clearCodeMessages}
-                  style={{
-                    border: T.border,
-                    background: "transparent",
-                    color: T.text,
-                    borderRadius: 12,
-                    padding: "10px 14px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  {t("clear")}
-                </button>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
-                  {t("codedMessage")}
-                </div>
-                <textarea
-                  value={encodedCodeMessage}
-                  onChange={(e) => setEncodedCodeMessage(e.target.value)}
-                  placeholder={t("codedMessagePlaceholder")}
-                  rows={7}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    borderRadius: 14,
-                    border: T.border,
-                    background: T.card,
-                    color: T.text,
-                    resize: "vertical",
-                    boxSizing: "border-box",
-                    fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
-                    letterSpacing: "0.08em",
-                  }}
-                />
-              </div>
+              <div style={{ fontSize: 13, opacity: 0.72 }}>{t("codesSubtitle")}</div>
             </div>
 
-            <div
-              style={{
-                background: T.panel,
-                borderRadius: 20,
-                padding: 18,
-                border: T.border,
-                boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
-                color: T.text,
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                backdropFilter: T.blur,
-                WebkitBackdropFilter: T.blur,
-              }}
-            >
-              <div style={{ fontSize: 16, fontWeight: 900 }}>{t("codeLegend")}</div>
-              <div style={{ fontSize: 13, opacity: 0.72 }}>{t("codeLegendHint")}</div>
-              <div
+            <div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
+                {t("plainMessage")}
+              </div>
+              <textarea
+                value={plainCodeMessage}
+                onChange={(e) => setPlainCodeMessage(e.target.value)}
+                placeholder={t("plainMessagePlaceholder")}
+                rows={7}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  gap: 10,
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                onClick={encodeCodeMessage}
+                style={{
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 800,
                 }}
               >
-                {CODE_MAP_ENTRIES.map(([code, letter]) => (
-                  <div
-                    key={`${code}-${letter}`}
-                    style={{
-                      border: T.border,
-                      background: T.card,
-                      borderRadius: 14,
-                      padding: "10px 12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 10,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
-                        fontWeight: 900,
-                      }}
-                    >
-                      {code}
-                    </span>
-                    <span style={{ opacity: 0.55 }}>=</span>
-                    <span style={{ fontWeight: 800 }}>{letter}</span>
-                  </div>
-                ))}
+                {t("encode")}
+              </button>
+              <button
+                onClick={decodeCodeMessage}
+                style={{
+                  border: T.border,
+                  background: T.panel,
+                  color: T.text,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                {t("decode")}
+              </button>
+              <button
+                onClick={clearCodeMessages}
+                style={{
+                  border: T.border,
+                  background: "transparent",
+                  color: T.text,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                {t("clear")}
+              </button>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
+                {t("codedMessage")}
               </div>
+              <textarea
+                value={encodedCodeMessage}
+                onChange={(e) => setEncodedCodeMessage(e.target.value)}
+                placeholder={t("codedMessagePlaceholder")}
+                rows={7}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                  fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
+                  letterSpacing: "0.08em",
+                }}
+              />
             </div>
           </div>
         ) : activeView === "settings" ? (
@@ -2789,6 +2760,21 @@ export default function JourneyTaskBoard() {
                 {t("totalScore")}: {scoreStats.total} {t("plus")} {scoreStats.streakBonus} {t("equals")}{" "}
                 {scoreStats.grandTotal} {t("points")}
               </div>
+              <button
+                onClick={openCodeLegendUnlock}
+                style={{
+                  border: T.border,
+                  background: T.card,
+                  color: T.text,
+                  borderRadius: 10,
+                  padding: "9px 12px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  alignSelf: "flex-start",
+                }}
+              >
+                {t("openCodeLegend")}
+              </button>
             </div>
           </div>
         ) : (
@@ -3258,6 +3244,125 @@ export default function JourneyTaskBoard() {
               </div>
             ) : null}
           </form>
+        </Modal>
+
+        <Modal
+          open={codeLegendUnlockModalOpen}
+          title={t("unlockCodeLegend")}
+          onClose={() => setCodeLegendUnlockModalOpen(false)}
+          theme={T}
+          closeLabel={t("close")}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              unlockCodeLegend();
+            }}
+            style={{ display: "flex", flexDirection: "column", gap: 12 }}
+          >
+            <div style={{ fontSize: 12, opacity: 0.72 }}>
+              {t("codedPassword")}
+            </div>
+            <input
+              value={codedLegendPassword}
+              onChange={(e) => {
+                setCodedLegendPassword(e.target.value);
+                if (codeLegendError) setCodeLegendError("");
+              }}
+              placeholder={t("codedPasswordPlaceholder")}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: T.border,
+                background: T.card,
+                color: T.text,
+                boxSizing: "border-box",
+                fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
+                letterSpacing: "0.08em",
+              }}
+            />
+            {codeLegendError ? (
+              <div style={{ fontSize: 12, color: "rgb(248, 113, 113)" }}>{codeLegendError}</div>
+            ) : null}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setCodeLegendUnlockModalOpen(false)}
+                style={{
+                  border: T.border,
+                  background: T.panel,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  color: T.text,
+                }}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="submit"
+                style={{
+                  border: T.border,
+                  background: T.card,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 800,
+                  color: T.text,
+                }}
+              >
+                {t("unlock")}
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        <Modal
+          open={codeLegendModalOpen}
+          title={t("codeLegend")}
+          onClose={() => setCodeLegendModalOpen(false)}
+          theme={T}
+          closeLabel={t("close")}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ fontSize: 13, opacity: 0.72 }}>{t("codeLegendHint")}</div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: 10,
+              }}
+            >
+              {CODE_MAP_ENTRIES.map(([code, letter]) => (
+                <div
+                  key={`${code}-${letter}`}
+                  style={{
+                    border: T.border,
+                    background: T.card,
+                    borderRadius: 14,
+                    padding: "10px 12px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
+                      fontWeight: 900,
+                    }}
+                  >
+                    {code}
+                  </span>
+                  <span style={{ opacity: 0.55 }}>=</span>
+                  <span style={{ fontWeight: 800 }}>{letter}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </Modal>
 
         <div style={{ fontSize: 12, opacity: 0.6, textAlign: "center", paddingBottom: 12 }}>

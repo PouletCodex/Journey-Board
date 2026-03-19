@@ -106,6 +106,19 @@ function clampStr(s: string) {
   return s.trim().replace(/\s+/g, " ");
 }
 
+const POINTS = {
+  taskDone: 10,
+  commentedTaskBonus: 5,
+  completedDay: 30,
+  streakPerDay: 3,
+  streakCap: 7,
+} as const;
+
+function taskPoints(task: Task) {
+  if (!task.done) return 0;
+  return POINTS.taskDone + (task.comment?.trim() ? POINTS.commentedTaskBonus : 0);
+}
+
 function IconX() {
   return (
     <span
@@ -650,6 +663,26 @@ export default function JourneyTaskBoard() {
                 {t.done ? "Completed" : "Not done"}
               </span>
             </span>
+
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "2px 8px",
+                borderRadius: 999,
+                background: t.done
+                  ? "rgba(250,204,21,0.16)"
+                  : isLight
+                    ? "rgba(0,0,0,0.06)"
+                    : "rgba(255,255,255,0.06)",
+                border: t.done ? "1px solid rgba(234,179,8,0.32)" : T.border,
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              +{taskPoints(t)} pts
+            </span>
           </div>
 
           {t.comment ? (
@@ -788,6 +821,44 @@ export default function JourneyTaskBoard() {
 
     return streak;
   }, [completedDays]);
+
+  const scoreStats = useMemo(() => {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dayOfWeek = (now.getDay() + 6) % 7;
+    const startOfWeek = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - dayOfWeek
+    ).getTime();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    function scoreForPeriod(fromTs: number) {
+      const taskScore = tasks
+        .filter((t) => t.createdAt >= fromTs)
+        .reduce((sum, task) => sum + taskPoints(task), 0);
+
+      const dayScore = completedDays.reduce((sum, key) => {
+        const [y, m, d] = key.split("-").map(Number);
+        const ts = new Date(y, m, d).getTime();
+        return ts >= fromTs ? sum + POINTS.completedDay : sum;
+      }, 0);
+
+      return taskScore + dayScore;
+    }
+
+    const baseTotal = scoreForPeriod(0);
+    const streakBonus = Math.min(streakDays, POINTS.streakCap) * POINTS.streakPerDay;
+
+    return {
+      today: scoreForPeriod(startOfDay),
+      week: scoreForPeriod(startOfWeek),
+      month: scoreForPeriod(startOfMonth),
+      total: baseTotal,
+      streakBonus,
+      grandTotal: baseTotal + streakBonus,
+    };
+  }, [tasks, completedDays, streakDays]);
 
   const calendarData = useMemo(() => {
     const base = new Date();
@@ -1258,7 +1329,25 @@ export default function JourneyTaskBoard() {
                 Morning / Midday / After Work — tick tasks, add comments, track progress.
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 12,
+                  background: T.panel,
+                  border: T.border,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  backdropFilter: T.blur,
+                  WebkitBackdropFilter: T.blur,
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>
+                  {scoreStats.grandTotal}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>points</div>
+              </div>
               <div
                 style={{
                   padding: "8px 12px",
@@ -1669,6 +1758,24 @@ export default function JourneyTaskBoard() {
                   <div style={{ fontSize: 16, fontWeight: 900 }}>{p.label}</div>
                   <div style={{ fontSize: 18, fontWeight: 900 }}>{p.data.pct}%</div>
                 </div>
+                <div
+                  style={{
+                    padding: 10,
+                    borderRadius: 12,
+                    background:
+                      "linear-gradient(180deg, rgba(250,204,21,0.2) 0%, rgba(234,179,8,0.12) 100%)",
+                    border: "1px solid rgba(234,179,8,0.3)",
+                  }}
+                >
+                  <div style={{ fontSize: 12, opacity: 0.72 }}>Points</div>
+                  <div style={{ fontSize: 20, fontWeight: 900 }}>
+                    {p.key === "day"
+                      ? scoreStats.today
+                      : p.key === "week"
+                        ? scoreStats.week
+                        : scoreStats.month}
+                  </div>
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div
                     style={{
@@ -1818,10 +1925,20 @@ export default function JourneyTaskBoard() {
             >
               <div style={{ fontSize: 16, fontWeight: 900 }}>Preferences</div>
               <div style={{ fontSize: 13, opacity: 0.7 }}>
-                More settings will appear here.
+                The app now includes a point system on top of streak tracking.
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.7, lineHeight: 1.6 }}>
+                Completed task: +{POINTS.taskDone}
+                <br />
+                Comment bonus: +{POINTS.commentedTaskBonus}
+                <br />
+                Saved day: +{POINTS.completedDay}
+                <br />
+                Streak bonus: +{POINTS.streakPerDay}/day, capped at {POINTS.streakCap} days
               </div>
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                Examples: notifications, reminders, weekly goals.
+                Total score: {scoreStats.total} + streak bonus {scoreStats.streakBonus} ={" "}
+                {scoreStats.grandTotal} points
               </div>
             </div>
           </div>

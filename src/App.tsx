@@ -92,6 +92,36 @@ type CalendarEvent = {
 const STORAGE_KEY = "journey_task_board_v1";
 const LANGUAGE_STORAGE_KEY = "journey_language_v1";
 const ALL_CATEGORIES = "__all__";
+const CODE_MAP_ENTRIES = [
+  ["1", "A"],
+  ["2", "Z"],
+  ["3", "E"],
+  ["4", "R"],
+  ["5", "T"],
+  ["6", "Y"],
+  ["7", "U"],
+  ["8", "I"],
+  ["9", "O"],
+  ["0", "P"],
+  ["-", "Q"],
+  ["/", "S"],
+  [":", "D"],
+  [";", "F"],
+  ["(", "G"],
+  [")", "H"],
+  ["€", "J"],
+  ["&", "K"],
+  ["@", "L"],
+  ['"', "M"],
+  [".", "W"],
+  [",", "X"],
+  ["?", "C"],
+  ["!", "V"],
+  ["'", "B"],
+  ["''", "N"],
+] as const;
+const LETTER_TO_CODE = new Map<string, string>(CODE_MAP_ENTRIES.map(([code, letter]) => [letter, code]));
+const CODE_TO_LETTER = new Map<string, string>(CODE_MAP_ENTRIES);
 
 const LANGUAGE_OPTIONS: Array<{ value: Language; label: string }> = [
   { value: "en", label: "English" },
@@ -117,6 +147,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     board: "Board",
     summary: "Summary",
     calendar: "Calendar",
+    codes: "Codes",
     settings: "Settings",
     subtitle: "Morning / Midday / After Work - tick tasks, add comments, track progress.",
     points: "points",
@@ -198,12 +229,24 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     deleteAllConfirm: "Delete all tasks?",
     resetAllConfirm: "Mark all tasks as incomplete?",
     resetSectionConfirm: "Mark all {section} tasks as incomplete?",
+    codesTitle: "Coded Messages",
+    codesSubtitle: "Write a normal message, encode it with your custom alphabet, or decode a secret message.",
+    plainMessage: "Plain message",
+    codedMessage: "Coded message",
+    encode: "Encode",
+    decode: "Decode",
+    clear: "Clear",
+    codeLegend: "Legend",
+    codeLegendHint: "Your custom alphabet used for encoding and decoding.",
+    plainMessagePlaceholder: "Write your normal message here...",
+    codedMessagePlaceholder: "Your coded message appears here...",
   },
   fr: {
     appTitle: "Tableau de taches",
     board: "Tableau",
     summary: "Resume",
     calendar: "Calendrier",
+    codes: "Codes",
     settings: "Parametres",
     subtitle: "Matin / Midi / Apres le travail - coche les taches, ajoute des commentaires, suis ta progression.",
     points: "points",
@@ -285,6 +328,17 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     deleteAllConfirm: "Supprimer toutes les taches ?",
     resetAllConfirm: "Marquer toutes les taches comme non terminees ?",
     resetSectionConfirm: "Marquer toutes les taches de {section} comme non terminees ?",
+    codesTitle: "Messages codes",
+    codesSubtitle: "Ecris un message normal, encode-le avec ton alphabet perso, ou decode un message secret.",
+    plainMessage: "Message normal",
+    codedMessage: "Message code",
+    encode: "Encoder",
+    decode: "Decoder",
+    clear: "Vider",
+    codeLegend: "Correspondance",
+    codeLegendHint: "Ton alphabet personnalise pour encoder et decoder.",
+    plainMessagePlaceholder: "Ecris ton message normal ici...",
+    codedMessagePlaceholder: "Ton message code apparait ici...",
   },
   es: {
     appTitle: "Tablero de tareas",
@@ -682,6 +736,32 @@ function taskPoints(task: Task) {
   return POINTS.taskDone + (task.comment?.trim() ? POINTS.commentedTaskBonus : 0);
 }
 
+function encodeCustomMessage(input: string) {
+  return Array.from(input)
+    .map((char) => LETTER_TO_CODE.get(char.toUpperCase()) ?? char)
+    .join("");
+}
+
+function decodeCustomMessage(input: string) {
+  let result = "";
+  let index = 0;
+
+  while (index < input.length) {
+    const doubleChar = input.slice(index, index + 2);
+    if (CODE_TO_LETTER.has(doubleChar)) {
+      result += CODE_TO_LETTER.get(doubleChar);
+      index += 2;
+      continue;
+    }
+
+    const singleChar = input[index];
+    result += CODE_TO_LETTER.get(singleChar) ?? singleChar;
+    index += 1;
+  }
+
+  return result;
+}
+
 function IconX() {
   return (
     <span
@@ -929,7 +1009,7 @@ export default function JourneyTaskBoard() {
   );
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
-  const [activeView, setActiveView] = useState<"board" | "summary" | "settings" | "calendar">("board");
+  const [activeView, setActiveView] = useState<"board" | "summary" | "settings" | "calendar" | "codes">("board");
   const [themeName, setThemeName] = useState<ThemeName>(() => {
     const saved = readStoredString("journey_theme", "Dark Glass");
     return saved in THEMES ? (saved as ThemeName) : "Dark Glass";
@@ -950,6 +1030,8 @@ export default function JourneyTaskBoard() {
   const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date | null>(null);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("09:00");
+  const [plainCodeMessage, setPlainCodeMessage] = useState("");
+  const [encodedCodeMessage, setEncodedCodeMessage] = useState("");
   const [headerTitle, setHeaderTitle] = useState(() =>
     readStoredString("journey_header_title", "Journey Task Board")
   );
@@ -1484,6 +1566,19 @@ export default function JourneyTaskBoard() {
     setCalendarEvents((prev) => prev.filter((e) => e.id !== id));
   }
 
+  function encodeCodeMessage() {
+    setEncodedCodeMessage(encodeCustomMessage(plainCodeMessage));
+  }
+
+  function decodeCodeMessage() {
+    setPlainCodeMessage(decodeCustomMessage(encodedCodeMessage));
+  }
+
+  function clearCodeMessages() {
+    setPlainCodeMessage("");
+    setEncodedCodeMessage("");
+  }
+
   function saveHeaderTitle(next?: string) {
     const value = clampStr(next ?? headerTitle);
     if (!value) return;
@@ -1776,6 +1871,7 @@ export default function JourneyTaskBoard() {
             { key: "board", label: t("board") },
             { key: "summary", label: t("summary") },
             { key: "calendar", label: t("calendar") },
+            { key: "codes", label: t("codes") },
             { key: "settings", label: t("settings") },
           ] as const).map((tab) => (
             <button
@@ -2411,6 +2507,182 @@ export default function JourneyTaskBoard() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : activeView === "codes" ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.2fr 0.8fr",
+              gap: 16,
+              alignItems: "start",
+            }}
+          >
+            <div
+              style={{
+                background: T.panel,
+                borderRadius: 20,
+                padding: 18,
+                border: T.border,
+                boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+                color: T.text,
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+                backdropFilter: T.blur,
+                WebkitBackdropFilter: T.blur,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 6 }}>
+                  {t("codesTitle")}
+                </div>
+                <div style={{ fontSize: 13, opacity: 0.72 }}>{t("codesSubtitle")}</div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
+                  {t("plainMessage")}
+                </div>
+                <textarea
+                  value={plainCodeMessage}
+                  onChange={(e) => setPlainCodeMessage(e.target.value)}
+                  placeholder={t("plainMessagePlaceholder")}
+                  rows={7}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 14,
+                    border: T.border,
+                    background: T.card,
+                    color: T.text,
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={encodeCodeMessage}
+                  style={{
+                    border: T.border,
+                    background: T.card,
+                    color: T.text,
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    cursor: "pointer",
+                    fontWeight: 800,
+                  }}
+                >
+                  {t("encode")}
+                </button>
+                <button
+                  onClick={decodeCodeMessage}
+                  style={{
+                    border: T.border,
+                    background: T.panel,
+                    color: T.text,
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                  }}
+                >
+                  {t("decode")}
+                </button>
+                <button
+                  onClick={clearCodeMessages}
+                  style={{
+                    border: T.border,
+                    background: "transparent",
+                    color: T.text,
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                  }}
+                >
+                  {t("clear")}
+                </button>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
+                  {t("codedMessage")}
+                </div>
+                <textarea
+                  value={encodedCodeMessage}
+                  onChange={(e) => setEncodedCodeMessage(e.target.value)}
+                  placeholder={t("codedMessagePlaceholder")}
+                  rows={7}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 14,
+                    border: T.border,
+                    background: T.card,
+                    color: T.text,
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                    fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
+                    letterSpacing: "0.08em",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: T.panel,
+                borderRadius: 20,
+                padding: 18,
+                border: T.border,
+                boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+                color: T.text,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                backdropFilter: T.blur,
+                WebkitBackdropFilter: T.blur,
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 900 }}>{t("codeLegend")}</div>
+              <div style={{ fontSize: 13, opacity: 0.72 }}>{t("codeLegendHint")}</div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {CODE_MAP_ENTRIES.map(([code, letter]) => (
+                  <div
+                    key={`${code}-${letter}`}
+                    style={{
+                      border: T.border,
+                      background: T.card,
+                      borderRadius: 14,
+                      padding: "10px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
+                        fontWeight: 900,
+                      }}
+                    >
+                      {code}
+                    </span>
+                    <span style={{ opacity: 0.55 }}>=</span>
+                    <span style={{ fontWeight: 800 }}>{letter}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : activeView === "settings" ? (
           <div

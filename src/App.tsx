@@ -234,6 +234,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     codedMessage: "Coded message",
     encode: "Encode",
     decode: "Decode",
+    copy: "Copy",
+    copied: "Copied",
     clear: "Clear",
     codeLegend: "Legend",
     codeLegendHint: "Your custom alphabet used for encoding and decoding.",
@@ -341,6 +343,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     codedMessage: "Message code",
     encode: "Encoder",
     decode: "Decoder",
+    copy: "Copier",
+    copied: "Copie",
     clear: "Vider",
     codeLegend: "Correspondance",
     codeLegendHint: "Ton alphabet personnalise pour encoder et decoder.",
@@ -448,6 +452,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     codedMessage: "Mensaje codificado",
     encode: "Codificar",
     decode: "Descifrar",
+    copy: "Copiar",
+    copied: "Copiado",
     clear: "Vaciar",
     codeLegend: "Leyenda",
     codeLegendHint: "Tu alfabeto personalizado para codificar y descifrar.",
@@ -555,6 +561,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     codedMessage: "Mensagem codificada",
     encode: "Codificar",
     decode: "Descodificar",
+    copy: "Copiar",
+    copied: "Copiado",
     clear: "Limpar",
     codeLegend: "Legenda",
     codeLegendHint: "O teu alfabeto personalizado para codificar e descodificar.",
@@ -662,6 +670,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     codedMessage: "Codierte Nachricht",
     encode: "Kodieren",
     decode: "Entschluesseln",
+    copy: "Kopieren",
+    copied: "Kopiert",
     clear: "Leeren",
     codeLegend: "Legende",
     codeLegendHint: "Dein persoenliches Alphabet zum Kodieren und Entschluesseln.",
@@ -769,6 +779,8 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     codedMessage: "Messaggio codificato",
     encode: "Codifica",
     decode: "Decodifica",
+    copy: "Copia",
+    copied: "Copiato",
     clear: "Svuota",
     codeLegend: "Legenda",
     codeLegendHint: "Il tuo alfabeto personalizzato per codificare e decodificare.",
@@ -1129,6 +1141,7 @@ export default function JourneyTaskBoard() {
   const [eventTime, setEventTime] = useState("09:00");
   const [plainCodeMessage, setPlainCodeMessage] = useState("");
   const [encodedCodeMessage, setEncodedCodeMessage] = useState("");
+  const [copiedCodeMessage, setCopiedCodeMessage] = useState(false);
   const [codedLegendPassword, setCodedLegendPassword] = useState("");
   const [codeLegendError, setCodeLegendError] = useState("");
   const [headerTitle, setHeaderTitle] = useState(() =>
@@ -1667,16 +1680,34 @@ export default function JourneyTaskBoard() {
   }
 
   function encodeCodeMessage() {
+    setCopiedCodeMessage(false);
     setEncodedCodeMessage(encodeCustomMessage(plainCodeMessage));
   }
 
   function decodeCodeMessage() {
+    setCopiedCodeMessage(false);
     setPlainCodeMessage(decodeCustomMessage(encodedCodeMessage));
+  }
+
+  async function copyEncodedMessage() {
+    const value = encodedCodeMessage.trim();
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(encodedCodeMessage);
+      setCopiedCodeMessage(true);
+      window.setTimeout(() => {
+        setCopiedCodeMessage(false);
+      }, 1800);
+    } catch {
+      setCopiedCodeMessage(false);
+    }
   }
 
   function clearCodeMessages() {
     setPlainCodeMessage("");
     setEncodedCodeMessage("");
+    setCopiedCodeMessage(false);
   }
 
   function openCodeLegendUnlock() {
@@ -2715,12 +2746,39 @@ export default function JourneyTaskBoard() {
             </div>
 
             <div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
-                {t("codedMessage")}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  marginBottom: 6,
+                }}
+              >
+                <div style={{ fontSize: 12, opacity: 0.75 }}>{t("codedMessage")}</div>
+                <button
+                  onClick={copyEncodedMessage}
+                  disabled={!encodedCodeMessage.trim()}
+                  style={{
+                    border: T.border,
+                    background: copiedCodeMessage ? T.text : T.card,
+                    color: copiedCodeMessage ? (themeName === "Light" ? "#ffffff" : "#0f1116") : T.text,
+                    borderRadius: 10,
+                    padding: "8px 12px",
+                    cursor: encodedCodeMessage.trim() ? "pointer" : "not-allowed",
+                    fontWeight: 700,
+                    opacity: encodedCodeMessage.trim() ? 1 : 0.45,
+                  }}
+                >
+                  {copiedCodeMessage ? t("copied") : t("copy")}
+                </button>
               </div>
               <textarea
                 value={encodedCodeMessage}
-                onChange={(e) => setEncodedCodeMessage(e.target.value)}
+                onChange={(e) => {
+                  setEncodedCodeMessage(e.target.value);
+                  setCopiedCodeMessage(false);
+                }}
                 placeholder={t("codedMessagePlaceholder")}
                 rows={7}
                 style={{

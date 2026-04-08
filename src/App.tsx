@@ -2746,54 +2746,73 @@ export default function JourneyTaskBoard() {
             </div>
 
             <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  marginBottom: 6,
-                }}
-              >
-                <div style={{ fontSize: 12, opacity: 0.75 }}>{t("codedMessage")}</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>{t("codedMessage")}</div>
+              <div style={{ position: "relative" }}>
                 <button
                   onClick={copyEncodedMessage}
                   disabled={!encodedCodeMessage.trim()}
+                  aria-label={t("copy")}
+                  title={copiedCodeMessage ? t("copied") : t("copy")}
                   style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    width: 34,
+                    height: 34,
+                    display: "grid",
+                    placeItems: "center",
                     border: T.border,
-                    background: copiedCodeMessage ? T.text : T.card,
+                    background: copiedCodeMessage ? T.text : T.panel,
                     color: copiedCodeMessage ? (themeName === "Light" ? "#ffffff" : "#0f1116") : T.text,
                     borderRadius: 10,
-                    padding: "8px 12px",
                     cursor: encodedCodeMessage.trim() ? "pointer" : "not-allowed",
-                    fontWeight: 700,
-                    opacity: encodedCodeMessage.trim() ? 1 : 0.45,
+                    opacity: encodedCodeMessage.trim() ? 0.96 : 0.45,
+                    zIndex: 1,
                   }}
                 >
-                  {copiedCodeMessage ? t("copied") : t("copy")}
+                  {copiedCodeMessage ? (
+                    <span style={{ fontSize: 16, fontWeight: 900 }}>✓</span>
+                  ) : (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                      <path
+                        d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
                 </button>
+                <textarea
+                  value={encodedCodeMessage}
+                  onChange={(e) => {
+                    setEncodedCodeMessage(e.target.value);
+                    setCopiedCodeMessage(false);
+                  }}
+                  placeholder={t("codedMessagePlaceholder")}
+                  rows={7}
+                  style={{
+                    width: "100%",
+                    padding: "12px 52px 12px 14px",
+                    borderRadius: 14,
+                    border: T.border,
+                    background: T.card,
+                    color: T.text,
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                    fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
+                    letterSpacing: "0.08em",
+                  }}
+                />
               </div>
-              <textarea
-                value={encodedCodeMessage}
-                onChange={(e) => {
-                  setEncodedCodeMessage(e.target.value);
-                  setCopiedCodeMessage(false);
-                }}
-                placeholder={t("codedMessagePlaceholder")}
-                rows={7}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: 14,
-                  border: T.border,
-                  background: T.card,
-                  color: T.text,
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                  fontFamily: '"SFMono-Regular", ui-monospace, Menlo, Consolas, monospace',
-                  letterSpacing: "0.08em",
-                }}
-              />
             </div>
           </div>
         ) : activeView === "settings" ? (

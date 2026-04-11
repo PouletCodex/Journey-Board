@@ -6,6 +6,8 @@
 @import './interactions.css';
 /* Import responsive design */
 @import './responsive.css';
+/* Import layout and responsive improvements */
+@import './layout.css';
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;

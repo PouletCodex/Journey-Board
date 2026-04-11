@@ -20,6 +20,8 @@ import {
 } from "@dnd-kit/sortable";
 
 import { CSS } from "@dnd-kit/utilities";
+import { PremiumThemes, type PremiumThemeName } from "./themes/premiumThemes";
+import { Icons } from "./components/Icons";
 
 // Utility function to format date keys consistently (YYYY-MM-DD)
 const formatDateKey = (date: Date): string => {
@@ -33,17 +35,8 @@ type Section = "Morning" | "Midday" | "AfterWork";
 type Language = "en" | "fr" | "es" | "pt" | "de" | "it";
 const SECTIONS: Section[] = ["Morning", "Midday", "AfterWork"];
 
-type ThemeName = "Dark Glass" | "Dark Matte" | "Light";
-type ThemeTokens = {
-  bg: string;
-  panel: string;
-  column: string;
-  card: string;
-  border: string;
-  text: string;
-  muted: string;
-  blur: string;
-};
+type ThemeName = PremiumThemeName;
+type ThemeTokens = typeof PremiumThemes[ThemeName];
 
 type Task = {
   id: string;
@@ -56,38 +49,7 @@ type Task = {
   order?: number;
 };
 
-const THEMES: Record<ThemeName, ThemeTokens> = {
-  "Dark Glass": {
-    bg: "linear-gradient(160deg, #0c0f14 0%, #0a0c10 50%, #11151d 100%)",
-    panel: "rgba(18, 22, 28, 0.72)",
-    column: "rgba(18, 22, 28, 0.58)",
-    card: "rgba(20, 24, 30, 0.75)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    text: "rgba(245,245,245,0.95)",
-    muted: "rgba(245,245,245,0.6)",
-    blur: "blur(14px)",
-  },
-  "Dark Matte": {
-    bg: "linear-gradient(160deg, #0f1116 0%, #0b0d12 100%)",
-    panel: "#14171d",
-    column: "#161a21",
-    card: "#1a1f27",
-    border: "1px solid rgba(255,255,255,0.06)",
-    text: "rgba(245,245,245,0.95)",
-    muted: "rgba(245,245,245,0.6)",
-    blur: "none",
-  },
-  Light: {
-    bg: "linear-gradient(160deg, #f3f4f7 0%, #e6e8ee 100%)",
-    panel: "rgba(255,255,255,0.8)",
-    column: "rgba(250,250,252,0.9)",
-    card: "rgba(255,255,255,0.95)",
-    border: "1px solid rgba(0,0,0,0.08)",
-    text: "rgba(20,20,20,0.92)",
-    muted: "rgba(20,20,20,0.6)",
-    blur: "none",
-  },
-};
+const THEMES = PremiumThemes;
 
 type CalendarEvent = {
   id: string;
@@ -2022,12 +1984,14 @@ export default function JourneyTaskBoard() {
           }}
         >
           {([
-            { key: "board", label: t("board") },
-            { key: "summary", label: t("summary") },
-            { key: "calendar", label: t("calendar") },
-            { key: "codes", label: t("codes") },
-            { key: "settings", label: t("settings") },
-          ] as const).map((tab) => (
+            { key: "board", label: t("board"), icon: "Board" },
+            { key: "summary", label: t("summary"), icon: "Summary" },
+            { key: "calendar", label: t("calendar"), icon: "Calendar" },
+            { key: "codes", label: t("codes"), icon: "Code" },
+            { key: "settings", label: t("settings"), icon: "Settings" },
+          ] as const).map((tab) => {
+            const IconComponent = Icons[tab.icon as keyof typeof Icons];
+            return (
             <button
               key={tab.key}
               onClick={() => setActiveView(tab.key)}
@@ -2040,11 +2004,19 @@ export default function JourneyTaskBoard() {
                 cursor: "pointer",
                 fontWeight: 700,
                 fontSize: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "all 150ms ease-out",
+                transform: activeView === tab.key ? "translateY(-2px)" : "none",
               }}
+              title={tab.label}
             >
-              {tab.label}
+              <IconComponent />
+              <span style={{ display: "none" }} className="tab-label">{tab.label}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {/* Header */}
@@ -2249,7 +2221,7 @@ export default function JourneyTaskBoard() {
               aria-label={t("theme")}
             >
               <option value="Dark Glass">Dark Glass</option>
-              <option value="Dark Matte">Dark Matte</option>
+              <option value="Dark Navy">Dark Matte</option>
               <option value="Light">Light</option>
             </select>
 
@@ -2891,10 +2863,10 @@ export default function JourneyTaskBoard() {
                   Dark Glass
                 </button>
                 <button
-                  onClick={() => setThemeName("Dark Matte")}
+                  onClick={() => setThemeName("Dark Navy")}
                   style={{
                     border: T.border,
-                    background: themeName === "Dark Matte" ? T.card : "transparent",
+                    background: themeName === "Dark Navy" ? T.card : "transparent",
                     color: T.text,
                     borderRadius: 10,
                     padding: "8px 12px",

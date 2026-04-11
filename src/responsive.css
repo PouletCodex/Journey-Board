@@ -1,0 +1,500 @@
+/* Responsive design optimizations and mobile-first approach */
+
+/* ============================================
+   TABLET BREAKPOINT (768px and below)
+   ============================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --transition-fast: 100ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --radius-md: 10px;
+  }
+
+  /* Typography adjustments */
+  h1 {
+    font-size: 1.8em;
+  }
+
+  h2 {
+    font-size: 1.4em;
+  }
+
+  h3 {
+    font-size: 1.1em;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  /* Spacing adjustments */
+  main, section {
+    padding: 12px;
+  }
+
+  /* Tab navigation */
+  .tab-group {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .tab-button {
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Header adjustments */
+  .header-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  /* Stat badges */
+  .stat-badge {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+  }
+
+  /* Cards and panels */
+  .card, .panel, .section-column {
+    margin: 0 -4px;
+    border-radius: 12px;
+  }
+
+  .modal-content {
+    border-radius: 16px;
+    padding: 20px;
+    margin: 12px;
+    max-width: calc(100vw - 24px);
+  }
+
+  /* Button adjustments */
+  button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .btn-primary {
+    padding: 8px 12px;
+  }
+
+  /* Input fields */
+  .form-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+    padding: 10px;
+  }
+
+  label {
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+
+  /* Task cards */
+  .task-card {
+    padding: 10px;
+    margin: 6px 0;
+  }
+
+  .task-item {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  /* Calendar grid */
+  .calendar-grid {
+    gap: 2px;
+  }
+
+  .calendar-day {
+    font-size: 11px;
+  }
+
+  /* Section columns */
+  .section-column {
+    min-height: 320px;
+    padding: 12px;
+  }
+
+  .section-header {
+    padding: 12px;
+  }
+
+  .section-title {
+    font-size: 14px;
+  }
+
+  /* Hover effects - reduce or disable */
+  .card:hover,
+  .panel:hover,
+  .section-column:hover {
+    transform: translateY(-2px);
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* ============================================
+   MOBILE BREAKPOINT (480px and below)
+   ============================================ */
+
+@media (max-width: 480px) {
+  :root {
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 1.4em;
+  }
+
+  h2 {
+    font-size: 1.1em;
+  }
+
+  body {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  /* Full width layouts */
+  main {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+  }
+
+  /* Tab navigation - single row, scrollable */
+  .tab-group {
+    margin: 0 -8px;
+    padding: 4px;
+    border-radius: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .tab-button {
+    padding: 6px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+
+  /* Header */
+  .header-card {
+    padding: 12px;
+    gap: 8px;
+    flex-direction: column;
+  }
+
+  .header-card > div {
+    width: 100%;
+  }
+
+  /* Stat badges - stack vertically on very small screens */
+  .stat-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .stat-badge {
+    padding: 6px 8px;
+    font-size: 10px;
+    flex: 1;
+    min-width: calc(50% - 3px);
+  }
+
+  /* Section columns - full width */
+  .section-column {
+    width: 100%;
+    min-height: 280px;
+    margin: 4px 0;
+    padding: 8px;
+    border-radius: 10px;
+  }
+
+  /* Task cards - optimized for small screens */
+  .task-item {
+    padding: 8px;
+    margin: 4px 0;
+    gap: 6px;
+  }
+
+  .task-card {
+    padding: 8px;
+    margin: 4px 0;
+  }
+
+  /* Modal adjustments */
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-content {
+    border-radius: 12px;
+    padding: 16px;
+    margin: 0;
+    max-width: 100%;
+    max-height: calc(100vh - 24px);
+  }
+
+  /* Buttons - full width option */
+  button {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  .btn-primary, .btn-secondary {
+    width: 100%;
+  }
+
+  /* Forms - full width inputs */
+  input[type="text"],
+  input[type="email"],
+  textarea,
+  select {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+  }
+
+  /* Calendar - optimize grid */
+  .calendar-grid {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+  }
+
+  .calendar-day {
+    font-size: 10px;
+    padding: 2px;
+  }
+
+  /* Navigation adjustments */
+  nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Menu optimization */
+  .menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  /* Hamburger menu if needed */
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Reduce hover effects */
+  .card:hover,
+  .panel:hover,
+  .section-column:hover {
+    transform: none;
+  }
+
+  .card:active,
+  .panel:active,
+  .section-column:active {
+    opacity: 0.8;
+  }
+
+  button:hover {
+    transform: none;
+  }
+
+  button:active {
+    transform: scale(0.95);
+  }
+
+  /* Touch-friendly click targets */
+  button, a, input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Reduce animations on mobile */
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-entrance,
+    .animate-entrance-up,
+    .animate-entrance-down,
+    .animate-entrance-left,
+    .animate-entrance-right,
+    .animate-entrance-scale {
+      animation-duration: 200ms;
+    }
+  }
+}
+
+/* ============================================
+   EXTRA SMALL DEVICES (320px and below)
+   ============================================ */
+
+@media (max-width: 320px) {
+  body {
+    font-size: 12px;
+  }
+
+  h1 {
+    font-size: 1.2em;
+  }
+
+  h2 {
+    font-size: 1em;
+  }
+
+  .header-card {
+    padding: 8px;
+  }
+
+  .modal-content {
+    padding: 12px;
+  }
+
+  button {
+    padding: 8px;
+    font-size: 11px;
+  }
+
+  .tab-button {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .stat-badge {
+    padding: 4px 6px;
+    font-size: 9px;
+  }
+}
+
+/* ============================================
+   LANDSCAPE MODE OPTIMIZATIONS
+   ============================================ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .header-card {
+    grid-column: 1 / -1;
+    padding: 12px;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 20px);
+  }
+
+  .tab-group {
+    gap: 4px;
+    padding: 4px;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .card, .panel, .section-column {
+    page-break-inside: avoid;
+    border: 1px solid #ccc;
+    box-shadow: none;
+  }
+
+  button, a {
+    color: black;
+  }
+
+  a::after {
+    content: " (" attr(href) ")";
+  }
+}
+
+/* ============================================
+   HIGH DPI SCREENS (Retina displays)
+   ============================================ */
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  body {
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY: LARGE TEXT SIZE
+   ============================================ */
+
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+  :root {
+    --radius-md: 10px;
+  }
+
+  button {
+    border-width: 2px;
+  }
+
+  .border {
+    border-width: 2px;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    scroll-behavior: auto !important;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

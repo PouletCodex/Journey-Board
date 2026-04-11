@@ -1,5 +1,11 @@
 /* Import modern component styles first */
 @import './components.css';
+/* Import advanced animations */
+@import './animations.css';
+/* Import interactive states */
+@import './interactions.css';
+/* Import responsive design */
+@import './responsive.css';
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;

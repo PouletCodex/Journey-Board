@@ -1,0 +1,487 @@
+/* Advanced interactive states and micro-interactions */
+
+/* ============================================
+   BUTTON ENHANCEMENTS
+   ============================================ */
+
+button,
+[role="button"] {
+  position: relative;
+  isolation: isolate;
+}
+
+button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+button:hover::before {
+  opacity: 0.5;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Primary buttons */
+button.btn-primary {
+  background: linear-gradient(135deg, rgba(100, 120, 255, 0.2) 0%, rgba(100, 120, 255, 0.1) 100%);
+  border: 1px solid rgba(100, 120, 255, 0.3);
+  color: #6478ff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+button.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.1), transparent 80%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+button.btn-primary:hover {
+  border-color: rgba(100, 120, 255, 0.5);
+  background: linear-gradient(135deg, rgba(100, 120, 255, 0.3) 0%, rgba(100, 120, 255, 0.2) 100%);
+  box-shadow: 0 4px 16px rgba(100, 120, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+button.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(100, 120, 255, 0.15);
+}
+
+/* ============================================
+   CARD AND PANEL HOVER EFFECTS
+   ============================================ */
+
+.card, .panel, .section-column {
+  transition: all var(--transition-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before,
+.panel::before,
+.section-column::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(100, 120, 255, 0.1), transparent 80%);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  pointer-events: none;
+}
+
+.card:hover::before,
+.panel:hover::before,
+.section-column:hover::before {
+  opacity: 1;
+}
+
+.card:hover,
+.panel:hover,
+.section-column:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   INPUT AND FORM INTERACTIONS
+   ============================================ */
+
+input, textarea, select {
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+input::placeholder, textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  transition: color var(--transition-fast);
+}
+
+input:focus::placeholder, textarea:focus::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Underline effect on input focus */
+input[type="text"]::after,
+input[type="email"]::after,
+textarea::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #6478ff, transparent);
+  transform: translateX(-50%);
+  transition: width var(--transition-normal);
+}
+
+input:focus::after,
+textarea:focus::after {
+  width: 100%;
+}
+
+/* ============================================
+   CHECKBOX AND RADIO ENHANCEMENTS
+   ============================================ */
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #6478ff;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+  position: relative;
+}
+
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+  transform: scale(1.15);
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  animation: successPulse var(--transition-fast);
+}
+
+/* ============================================
+   LINK AND ANCHOR STYLES
+   ============================================ */
+
+a {
+  position: relative;
+  color: #6478ff;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #6478ff, #a78bfa);
+  transition: width var(--transition-normal);
+}
+
+a:hover {
+  color: #a78bfa;
+}
+
+a:hover::before {
+  width: 100%;
+}
+
+a:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   TASK CARD INTERACTIONS
+   ============================================ */
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 12px;
+  border: 1px solid rgba(100, 120, 255, 0.1);
+  background: rgba(100, 120, 255, 0.03);
+  transition: all var(--transition-fast);
+  cursor: grab;
+  user-select: none;
+}
+
+.task-item:hover {
+  border-color: rgba(100, 120, 255, 0.3);
+  background: rgba(100, 120, 255, 0.08);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(100, 120, 255, 0.15);
+}
+
+.task-item:active {
+  cursor: grabbing;
+  transform: translateX(4px) scale(0.98);
+}
+
+.task-item.completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.task-item.completed:hover {
+  opacity: 0.8;
+}
+
+/* ============================================
+   MODAL AND OVERLAY ENHANCEMENTS
+   ============================================ */
+
+.modal-overlay {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn var(--transition-normal);
+}
+
+.modal-content {
+  animation: slideInUp var(--transition-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(100, 120, 255, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(100, 120, 255, 0.1) 0%, transparent 100%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ============================================
+   TOOLTIP AND HINT STYLES
+   ============================================ */
+
+[title], [data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+
+[title]::after, [data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 35, 70, 0.95);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--transition-fast);
+  z-index: 1000;
+}
+
+[title]::before, [data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(30, 35, 70, 0.95);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: 1000;
+}
+
+[title]:hover::after, [data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+[title]:hover::before, [data-tooltip]:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+
+.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(100, 120, 255, 0.2);
+  border-top-color: #6478ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(100, 120, 255, 0.1), rgba(100, 120, 255, 0.2), rgba(100, 120, 255, 0.1));
+  background-size: 200% 100%;
+  animation: skeleton 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* ============================================
+   STATUS INDICATORS
+   ============================================ */
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-dot.success {
+  background: #10b981;
+}
+
+.status-dot.warning {
+  background: #f59e0b;
+}
+
+.status-dot.error {
+  background: #ef4444;
+}
+
+.status-dot.info {
+  background: #3b82f6;
+}
+
+/* ============================================
+   BADGE STYLES
+   ============================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(100, 120, 255, 0.15);
+  border: 1px solid rgba(100, 120, 255, 0.3);
+  color: #6478ff;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.badge:hover {
+  background: rgba(100, 120, 255, 0.25);
+  border-color: rgba(100, 120, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.badge.success {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+
+.badge.warning {
+  background: rgba(247, 144, 9, 0.15);
+  border-color: rgba(247, 144, 9, 0.3);
+  color: #f79009;
+}
+
+.badge.error {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+/* ============================================
+   SCROLL AND OVERFLOW BEHAVIORS
+   ============================================ */
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 120, 255, 0.4);
+  border-radius: 6px;
+  transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 120, 255, 0.7);
+}
+
+/* ============================================
+   TEXT SELECTION ENHANCEMENTS
+   ============================================ */
+
+::selection {
+  background: linear-gradient(135deg, rgba(100, 120, 255, 0.3), rgba(100, 120, 255, 0.2));
+  color: inherit;
+}
+
+::-moz-selection {
+  background: linear-gradient(135deg, rgba(100, 120, 255, 0.3), rgba(100, 120, 255, 0.2));
+  color: inherit;
+}
+
+/* ============================================
+   RESPONSIVE INTERACTION STATES
+   ============================================ */
+
+@media (hover: none) and (pointer: coarse) {
+  button:hover,
+  .card:hover,
+  a:hover {
+    transform: none;
+  }
+
+  button:active,
+  .card:active,
+  a:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+/* ============================================
+   DARK MODE SPECIFIC
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  .shadow-dark {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .glow-dark {
+    text-shadow: 0 0 10px rgba(100, 120, 255, 0.5);
+  }
+}
+
+/* ============================================
+   LIGHT MODE SPECIFIC
+   ============================================ */
+
+@media (prefers-color-scheme: light) {
+  .shadow-light {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .glow-light {
+    text-shadow: none;
+  }
+}

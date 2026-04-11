@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import {
   DndContext,
@@ -20,6 +20,14 @@ import {
 } from "@dnd-kit/sortable";
 
 import { CSS } from "@dnd-kit/utilities";
+
+// Utility function to format date keys consistently (YYYY-MM-DD)
+const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 type Section = "Morning" | "Midday" | "AfterWork";
 type Language = "en" | "fr" | "es" | "pt" | "de" | "it";
@@ -1148,7 +1156,6 @@ export default function JourneyTaskBoard() {
     readStoredString("journey_header_title", "Journey Task Board")
   );
   const [editingHeader, setEditingHeader] = useState(false);
-  const headerTitleRef = useRef<HTMLSpanElement | null>(null);
   const [sectionTitles, setSectionTitles] = useState<Record<Section, string>>(() => {
     const fallback: Record<Section, string> = {
       Morning: "Morning",
@@ -1546,7 +1553,7 @@ export default function JourneyTaskBoard() {
 
     const completedSet = new Set(completedDays);
     const today = new Date();
-    const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const dayKey = formatDateKey;
 
     let streak = 0;
     let cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1642,7 +1649,7 @@ export default function JourneyTaskBoard() {
 
   function saveDayCompletion() {
     const today = new Date();
-    const key = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    const key = formatDateKey(today);
     const allDone = tasks.length > 0 && tasks.every((t) => t.done);
     if (!allDone) {
       if (!confirm(t("markAllDoneConfirm"))) return;
@@ -1663,7 +1670,7 @@ export default function JourneyTaskBoard() {
     if (!calendarSelectedDate) return;
     const title = clampStr(eventTitle);
     if (!title) return;
-    const key = `${calendarSelectedDate.getFullYear()}-${calendarSelectedDate.getMonth()}-${calendarSelectedDate.getDate()}`;
+    const key = formatDateKey(calendarSelectedDate);
     const newEvent: CalendarEvent = {
       id: uid(),
       dateKey: key,
@@ -2084,33 +2091,48 @@ export default function JourneyTaskBoard() {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span
-                ref={headerTitleRef}
-                contentEditable={editingHeader}
-                suppressContentEditableWarning
-                onClick={() => setEditingHeader(true)}
-                onBlur={() => saveHeaderTitle(headerTitleRef.current?.textContent ?? "")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveHeaderTitle(headerTitleRef.current?.textContent ?? "");
-                  }
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    setEditingHeader(false);
-                  }
-                }}
-                style={{
-                  fontSize: 24,
-                  fontWeight: 900,
-                  outline: "none",
-                  cursor: "text",
-                  display: "inline-block",
-                }}
-                title={t("clickToRename")}
-              >
-                {displayHeaderTitle}
-              </span>
+              {editingHeader ? (
+                <input
+                  type="text"
+                  value={headerTitle}
+                  onChange={(e) => setHeaderTitle(e.target.value)}
+                  onBlur={() => saveHeaderTitle(headerTitle)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      saveHeaderTitle(headerTitle);
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setEditingHeader(false);
+                    }
+                  }}
+                  autoFocus
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 900,
+                    border: `1px solid ${T.border}`,
+                    background: T.column,
+                    color: T.text,
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                  }}
+                />
+              ) : (
+                <span
+                  onClick={() => setEditingHeader(true)}
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 900,
+                    cursor: "text",
+                    display: "inline-block",
+                  }}
+                  title={t("clickToRename")}
+                >
+                  {displayHeaderTitle}
+                </span>
+              )}
               <div style={{ fontSize: 13, opacity: 0.7, color: T.muted }}>
                 {t("subtitle")}
               </div>
@@ -2433,40 +2455,51 @@ export default function JourneyTaskBoard() {
                     }}
                   >
                     <div>
-                      <span
-                        contentEditable={editingSection === s}
-                        suppressContentEditableWarning
-                        onClick={() => startEditSectionTitle(s)}
-                        onInput={(e) => {
-                          if (editingSection === s) {
-                            setEditingSectionTitle((e.currentTarget.textContent ?? "").trim());
-                          }
-                        }}
-                        onBlur={() => saveSectionTitle()}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            saveSectionTitle();
-                          }
-                          if (e.key === "Escape") {
-                            e.preventDefault();
-                            setEditingSection(null);
-                          }
-                        }}
-                        style={{
-                          fontSize: 16,
-                          fontWeight: 900,
-                          color: T.text,
-                          outline: "none",
-                          borderRadius: 6,
-                          padding: editingSection === s ? "2px 6px" : 0,
-                          cursor: "text",
-                          display: "inline-block",
-                        }}
-                        title={t("clickToRename")}
-                      >
-                        {displaySectionTitle(s)}
-                      </span>
+                      {editingSection === s ? (
+                        <input
+                          type="text"
+                          value={editingSectionTitle}
+                          onChange={(e) => setEditingSectionTitle(e.target.value)}
+                          onBlur={() => saveSectionTitle()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              saveSectionTitle();
+                            }
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              setEditingSection(null);
+                            }
+                          }}
+                          autoFocus
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 900,
+                            color: T.text,
+                            border: `1px solid ${T.border}`,
+                            background: T.card,
+                            borderRadius: 6,
+                            padding: "2px 6px",
+                            fontFamily: "inherit",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          onClick={() => startEditSectionTitle(s)}
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 900,
+                            color: T.text,
+                            borderRadius: 6,
+                            padding: 0,
+                            cursor: "text",
+                            display: "inline-block",
+                          }}
+                          title={t("clickToRename")}
+                        >
+                          {displaySectionTitle(s)}
+                        </span>
+                      )}
                       <div
                         style={{
                           fontSize: 13,
@@ -3355,8 +3388,7 @@ export default function JourneyTaskBoard() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {calendarEvents
                     .filter((e) =>
-                      e.dateKey ===
-                      `${calendarSelectedDate.getFullYear()}-${calendarSelectedDate.getMonth()}-${calendarSelectedDate.getDate()}`
+                      e.dateKey === formatDateKey(calendarSelectedDate)
                     )
                     .sort((a, b) => a.time.localeCompare(b.time))
                     .map((e) => (
@@ -3395,8 +3427,7 @@ export default function JourneyTaskBoard() {
                       </div>
                     ))}
                   {calendarEvents.filter((e) =>
-                    e.dateKey ===
-                    `${calendarSelectedDate.getFullYear()}-${calendarSelectedDate.getMonth()}-${calendarSelectedDate.getDate()}`
+                    e.dateKey === formatDateKey(calendarSelectedDate)
                   ).length === 0 ? (
                     <div style={{ fontSize: 12, opacity: 0.6 }}>{t("noEventsForDay")}</div>
                   ) : null}

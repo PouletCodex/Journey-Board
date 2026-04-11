@@ -6,6 +6,77 @@
   text-align: left;
 }
 
+/* Accessibility: Focus visible */
+:focus-visible {
+  outline: 2px solid#646cff;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #646cff;
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Semantic HTML improvements */
+main {
+  display: block;
+}
+
+nav {
+  display: block;
+}
+
+/* Input and label styling for better accessibility */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  font-family: inherit;
+  font-size: 1em;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid #646cff;
+  outline-offset: -1px;
+}
+
+/* Improved contrast for text */
+.muted-text {
+  color: rgba(245, 245, 245, 0.7);
+}
+
+@media (prefers-color-scheme: light) {
+  .muted-text {
+    color: rgba(20, 20, 20, 0.7);
+  }
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

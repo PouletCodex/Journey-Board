@@ -38,10 +38,26 @@ body {
 
 /* Typography improvements */
 body, input, button, textarea, select {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  letter-spacing: 0.3px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Helvetica Neue', Arial, sans-serif;
+  letter-spacing: 0.2px;
+}
+
+/* (tech-grid and scanline removed — obsidian theme uses clean flat background) */
+
+/* ── Monospace numbers ────────────────────── */
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+
+/* ── Tech glow ────────────────────────────── */
+.tech-glow-cyan {
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.3), 0 0 12px rgba(0, 212, 255, 0.15);
+}
+.tech-glow-green {
+  box-shadow: 0 0 0 1px rgba(0, 255, 136, 0.3), 0 0 12px rgba(0, 255, 136, 0.15);
 }
 
 /* Improved buttons base */

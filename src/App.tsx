@@ -21,7 +21,6 @@ import {
 
 import { CSS } from "@dnd-kit/utilities";
 import { PremiumThemes, type PremiumThemeName } from "./themes/premiumThemes";
-import { Icons } from "./components/Icons";
 
 // Utility function to format date keys consistently (YYYY-MM-DD)
 const formatDateKey = (date: Date): string => {
@@ -56,6 +55,13 @@ type CalendarEvent = {
   dateKey: string;
   time: string;
   title: string;
+  createdAt: number;
+};
+
+type HabitTracker = {
+  id: string;
+  name: string;
+  accentColor: string;
   createdAt: number;
 };
 
@@ -116,6 +122,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     board: "Board",
     summary: "Summary",
     calendar: "Calendar",
+    journal: "Journal",
     codes: "Codes",
     settings: "Settings",
     subtitle: "Morning / Midday / After Work - tick tasks, add comments, track progress.",
@@ -225,6 +232,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     board: "Tableau",
     summary: "Resume",
     calendar: "Calendrier",
+    journal: "Journal",
     codes: "Codes",
     settings: "Parametres",
     subtitle: "Matin / Midi / Apres le travail - coche les taches, ajoute des commentaires, suis ta progression.",
@@ -334,6 +342,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     board: "Tablero",
     summary: "Resumen",
     calendar: "Calendario",
+    journal: "Diario",
     codes: "Codigos",
     settings: "Ajustes",
     subtitle: "Manana / Mediodia / Despues del trabajo - marca tareas, agrega comentarios y sigue tu progreso.",
@@ -443,6 +452,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     board: "Quadro",
     summary: "Resumo",
     calendar: "Calendario",
+    journal: "Diário",
     codes: "Codigos",
     settings: "Definicoes",
     subtitle: "Manha / Meio-dia / Depois do trabalho - marca tarefas, adiciona comentarios e acompanha o progresso.",
@@ -552,6 +562,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     board: "Board",
     summary: "Ubersicht",
     calendar: "Kalender",
+    journal: "Tagebuch",
     codes: "Codes",
     settings: "Einstellungen",
     subtitle: "Morgen / Mittag / Nach der Arbeit - hake Aufgaben ab, fuege Kommentare hinzu und verfolge deinen Fortschritt.",
@@ -661,6 +672,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = {
     board: "Bacheca",
     summary: "Riepilogo",
     calendar: "Calendario",
+    journal: "Diario",
     codes: "Codici",
     settings: "Impostazioni",
     subtitle: "Mattina / Mezzogiorno / Dopo il lavoro - spunta le attivita, aggiungi commenti e monitora i progressi.",
@@ -888,42 +900,46 @@ function IconCheck() {
 function ProgressRing({
   value,
   trackColor,
+  accentColor,
 }: {
   value: number;
   trackColor: string;
+  accentColor?: string;
 }) {
-  const hue = Math.round(8 + (Math.max(0, Math.min(100, value)) / 100) * 120);
-  const progColor = `hsl(${hue} 75% 55%)`;
-  const r = 45;
+  const progColor = value === 100
+    ? "#22c55e"
+    : accentColor ?? "#6478ff";
+  const r = 38;
   const c = 2 * Math.PI * r;
   const dash = (value / 100) * c;
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <svg width="124" height="124" viewBox="0 0 124 124">
+      <svg width="96" height="96" viewBox="0 0 96 96">
         <circle
-          cx="62"
-          cy="62"
+          cx="48"
+          cy="48"
           r={r}
           stroke={trackColor}
-          strokeWidth="8"
+          strokeWidth="6"
           fill="none"
+          strokeOpacity="0.3"
         />
         <circle
-          cx="62"
-          cy="62"
+          cx="48"
+          cy="48"
           r={r}
           stroke={progColor}
-          strokeWidth="8"
+          strokeWidth="6"
           fill="none"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${c - dash}`}
-          transform="rotate(-90 62 62)"
+          transform="rotate(-90 48 48)"
         />
         <text
-          x="62"
-          y="66"
+          x="48"
+          y="53"
           textAnchor="middle"
-          fontSize="20"
+          fontSize="17"
           fontWeight="800"
           fill={progColor}
         >
@@ -1080,16 +1096,39 @@ function SectionDropZone({
   );
 }
 
+// ── Draggable wrapper for tracker cards (uses useSortable at component level) ──
+function SortableTrackerWrapper({
+  id,
+  children,
+}: {
+  id: string;
+  children: (dragHandleProps: React.HTMLAttributes<HTMLElement>, isDragging: boolean) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: transition ?? "transform 200ms ease",
+        opacity: isDragging ? 0.45 : 1,
+      }}
+    >
+      {children({ ...attributes, ...listeners }, isDragging)}
+    </div>
+  );
+}
+
 export default function JourneyTaskBoard() {
   const [tasks, setTasks] = useState<Task[]>(() =>
     readStoredValue<Task[]>(STORAGE_KEY, [], Array.isArray)
   );
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [onlyIncomplete, setOnlyIncomplete] = useState<boolean>(false);
-  const [activeView, setActiveView] = useState<"board" | "summary" | "settings" | "calendar" | "codes">("board");
+  const [activeView, setActiveView] = useState<"board" | "summary" | "settings" | "calendar" | "codes" | "journal">("board");
   const [themeName, setThemeName] = useState<ThemeName>(() => {
-    const saved = readStoredString("journey_theme", "Dark Glass");
-    return saved in THEMES ? (saved as ThemeName) : "Dark Glass";
+    const saved = readStoredString("journey_theme", "Obsidian");
+    return saved in THEMES ? (saved as ThemeName) : "Obsidian";
   });
   const [language, setLanguage] = useState<Language>(() => {
     const saved = readStoredString(LANGUAGE_STORAGE_KEY, "fr");
@@ -1106,7 +1145,7 @@ export default function JourneyTaskBoard() {
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [codeLegendModalOpen, setCodeLegendModalOpen] = useState(false);
   const [codeLegendUnlockModalOpen, setCodeLegendUnlockModalOpen] = useState(false);
-  const [calendarSelectedDate, setCalendarSelectedDate] = useState<Date | null>(null);
+  const [calendarSelectedDate] = useState<Date | null>(null);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("09:00");
   const [plainCodeMessage, setPlainCodeMessage] = useState("");
@@ -1139,6 +1178,63 @@ export default function JourneyTaskBoard() {
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [editingSectionTitle, setEditingSectionTitle] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dayColors, setDayColors] = useState<Record<string, string>>(() =>
+    readStoredValue<Record<string, string>>(
+      "journey_day_colors",
+      {},
+      (v): v is Record<string, string> =>
+        typeof v === "object" && v !== null && !Array.isArray(v)
+    )
+  );
+
+  // ── Multi-tracker calendars ──────────────────────────────────────
+  const [habitTrackers, setHabitTrackers] = useState<HabitTracker[]>(() => {
+    const saved = readStoredValue<HabitTracker[]>(
+      "journey_habit_trackers",
+      [],
+      Array.isArray
+    );
+    if (saved.length > 0) return saved;
+    // Default trackers on first load
+    return [
+      { id: uid(), name: "Travail", accentColor: "#3b7a50", createdAt: Date.now() - 2000 },
+      { id: uid(), name: "Sport", accentColor: "#4a5090", createdAt: Date.now() - 1000 },
+    ];
+  });
+  const [trackerDayColors, setTrackerDayColors] = useState<Record<string, Record<string, string>>>(() =>
+    readStoredValue<Record<string, Record<string, string>>>(
+      "journey_tracker_day_colors",
+      {},
+      (v): v is Record<string, Record<string, string>> =>
+        typeof v === "object" && v !== null && !Array.isArray(v)
+    )
+  );
+  const [coloringCell, setColoringCell] = useState<{ trackerId: string; dateKey: string; x: number; y: number } | null>(null);
+  const [trackerDayNotes, setTrackerDayNotes] = useState<Record<string, Record<string, string>>>(() =>
+    readStoredValue<Record<string, Record<string, string>>>(
+      "journey_tracker_day_notes",
+      {},
+      (v): v is Record<string, Record<string, string>> => typeof v === "object" && v !== null && !Array.isArray(v)
+    )
+  );
+  // Daily journal
+  const [journalEntries, setJournalEntries] = useState<Record<string, string>>(() =>
+    readStoredValue<Record<string, string>>(
+      "journey_journal_entries",
+      {},
+      (v): v is Record<string, string> => typeof v === "object" && v !== null && !Array.isArray(v)
+    )
+  );
+  const [journalDate, setJournalDate] = useState<string>(() => formatDateKey(new Date()));
+
+  // Multi-select: trackerId of the card in select-mode, + selected dateKeys per tracker
+  const [multiSelectTracker, setMultiSelectTracker] = useState<string | null>(null);
+  const [selectedDays, setSelectedDays] = useState<Record<string, string[]>>({});
+  const [addingTracker, setAddingTracker] = useState(false);
+  const [newTrackerName, setNewTrackerName] = useState("");
+  const [newTrackerColor, setNewTrackerColor] = useState("#3b7a50");
+  const [editingTrackerId, setEditingTrackerId] = useState<string | null>(null);
+  const [editingTrackerName, setEditingTrackerName] = useState("");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1208,6 +1304,36 @@ export default function JourneyTaskBoard() {
       // ignore
     }
   }, [sectionTitles]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_day_colors", JSON.stringify(dayColors));
+    } catch { /* ignore */ }
+  }, [dayColors]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_habit_trackers", JSON.stringify(habitTrackers));
+    } catch { /* ignore */ }
+  }, [habitTrackers]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_tracker_day_colors", JSON.stringify(trackerDayColors));
+    } catch { /* ignore */ }
+  }, [trackerDayColors]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_tracker_day_notes", JSON.stringify(trackerDayNotes));
+    } catch { /* ignore */ }
+  }, [trackerDayNotes]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("journey_journal_entries", JSON.stringify(journalEntries));
+    } catch { /* ignore */ }
+  }, [journalEntries]);
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const t of tasks) if (t.category?.trim()) set.add(t.category.trim());
@@ -1234,7 +1360,7 @@ export default function JourneyTaskBoard() {
     return value;
   };
 
-  const isLight = themeName === "Light";
+  const isLight = T.isLight;
   const danger = isLight
     ? {
         bg: "linear-gradient(180deg, rgba(210,70,70,0.95) 0%, rgba(170,40,40,0.98) 100%)",
@@ -1250,42 +1376,26 @@ export default function JourneyTaskBoard() {
   const renderTaskCard = (task: Task, isOverlay = false) => (
     <div
       style={{
-        border: task.done
-          ? T.border
-          : isLight
-            ? "1px solid rgba(180,60,60,0.35)"
-            : "1px solid rgba(255,120,120,0.35)",
-        borderRadius: 16,
+        border: T.border,
+        borderRadius: T.radius,
         padding: 12,
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        background: task.done
-          ? T.card
-          : isLight
-            ? "linear-gradient(180deg, rgba(255,230,230,0.98) 0%, rgba(245,210,210,0.98) 100%)"
-            : "linear-gradient(180deg, rgba(46,26,26,0.98) 0%, rgba(26,16,16,0.98) 100%)",
-        color: task.done
-          ? T.text
-          : isLight
-            ? "rgba(60,20,20,0.9)"
-            : T.text,
+        background: T.card,
+        color: T.text,
         boxShadow: isOverlay
           ? "0 24px 60px rgba(0,0,0,0.45)"
-          : task.done
-            ? isLight
-              ? "0 10px 22px rgba(0,0,0,0.12)"
-              : "0 12px 26px rgba(0,0,0,0.35)"
-            : isLight
-              ? "0 12px 26px rgba(160,40,40,0.18)"
-              : "0 14px 30px rgba(120,40,40,0.25)",
+          : T.shadow,
         position: "relative",
         backdropFilter: T.blur,
         WebkitBackdropFilter: T.blur,
         transform: isOverlay ? "scale(1.02)" : "none",
         transition: "transform 120ms ease",
+        opacity: task.done ? 0.72 : 1,
       }}
     >
+      {/* Left status stripe */}
       <div
         aria-hidden="true"
         style={{
@@ -1293,15 +1403,13 @@ export default function JourneyTaskBoard() {
           left: 0,
           top: 0,
           bottom: 0,
-          width: 6,
-          borderTopLeftRadius: 16,
-          borderBottomLeftRadius: 16,
+          width: T.radius === 0 ? 4 : 3,
+          borderTopLeftRadius: T.radius,
+          borderBottomLeftRadius: T.radius,
           background: task.done
-            ? "linear-gradient(180deg, rgba(34,197,94,0.6) 0%, rgba(22,163,74,0.4) 100%)"
-            : isLight
-              ? "linear-gradient(180deg, rgba(185,28,28,0.6) 0%, rgba(127,29,29,0.5) 100%)"
-              : "linear-gradient(180deg, rgba(239,68,68,0.8) 0%, rgba(185,28,28,0.6) 100%)",
-          opacity: task.done ? 0.45 : 0.9,
+            ? T.success.replace("0.18", "0.6").replace("0.16", "0.6").replace("0.15", "0.6")
+            : T.accent,
+          opacity: task.done ? 0.5 : 0.7,
         }}
       />
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -1620,13 +1728,6 @@ export default function JourneyTaskBoard() {
     setCompletedDays((prev) => (prev.includes(key) ? prev : [...prev, key]));
   }
 
-  function openCalendarDay(year: number, month: number, day: number) {
-    const selected = new Date(year, month, day);
-    setCalendarSelectedDate(selected);
-    setEventTitle("");
-    setEventTime("09:00");
-    setCalendarModalOpen(true);
-  }
 
   function saveCalendarEvent() {
     if (!calendarSelectedDate) return;
@@ -1647,6 +1748,103 @@ export default function JourneyTaskBoard() {
   function removeCalendarEvent(id: string) {
     setCalendarEvents((prev) => prev.filter((e) => e.id !== id));
   }
+
+  // ── Habit tracker helpers ────────────────────────────────────────
+  function setTrackerDayColor(trackerId: string, dateKey: string, color: string | null) {
+    setTrackerDayColors((prev) => {
+      const existing = { ...(prev[trackerId] ?? {}) };
+      if (color === null) {
+        delete existing[dateKey];
+      } else {
+        existing[dateKey] = color;
+      }
+      return { ...prev, [trackerId]: existing };
+    });
+    // Keep popup open so user can also add a note
+  }
+
+  function setTrackerDayNote(trackerId: string, dateKey: string, note: string) {
+    setTrackerDayNotes((prev) => {
+      const existing = { ...(prev[trackerId] ?? {}) };
+      if (!note.trim()) {
+        delete existing[dateKey];
+      } else {
+        existing[dateKey] = note;
+      }
+      return { ...prev, [trackerId]: existing };
+    });
+  }
+
+  function reorderTrackers(fromId: string, toId: string) {
+    setHabitTrackers((prev) => {
+      const from = prev.findIndex((t) => t.id === fromId);
+      const to = prev.findIndex((t) => t.id === toId);
+      if (from === -1 || to === -1) return prev;
+      return arrayMove(prev, from, to);
+    });
+  }
+
+  function toggleDaySelection(trackerId: string, dateKey: string) {
+    setSelectedDays((prev) => {
+      const current = prev[trackerId] ?? [];
+      const exists = current.includes(dateKey);
+      return {
+        ...prev,
+        [trackerId]: exists ? current.filter((k) => k !== dateKey) : [...current, dateKey],
+      };
+    });
+  }
+
+  function applyColorToSelection(trackerId: string, color: string | null) {
+    const keys = selectedDays[trackerId] ?? [];
+    if (keys.length === 0) return;
+    setTrackerDayColors((prev) => {
+      const existing = { ...(prev[trackerId] ?? {}) };
+      for (const k of keys) {
+        if (color === null) delete existing[k];
+        else existing[k] = color;
+      }
+      return { ...prev, [trackerId]: existing };
+    });
+    // Exit multi-select mode after applying
+    setSelectedDays((prev) => ({ ...prev, [trackerId]: [] }));
+    setMultiSelectTracker(null);
+  }
+
+  function exitMultiSelect() {
+    setMultiSelectTracker(null);
+    setSelectedDays({});
+  }
+
+  function addHabitTracker() {
+    const name = newTrackerName.trim();
+    if (!name) return;
+    setHabitTrackers((prev) => [
+      ...prev,
+      { id: uid(), name, accentColor: newTrackerColor, createdAt: Date.now() },
+    ]);
+    setNewTrackerName("");
+    setNewTrackerColor("#3b7a50");
+    setAddingTracker(false);
+  }
+
+  function deleteHabitTracker(id: string) {
+    if (!confirm("Supprimer ce traceur ?")) return;
+    setHabitTrackers((prev) => prev.filter((t) => t.id !== id));
+    setTrackerDayColors((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }
+
+  function saveTrackerName(id: string) {
+    const name = editingTrackerName.trim();
+    if (!name) return;
+    setHabitTrackers((prev) => prev.map((t) => t.id === id ? { ...t, name } : t));
+    setEditingTrackerId(null);
+  }
+
 
   function encodeCodeMessage() {
     setCopiedCodeMessage(false);
@@ -1921,8 +2119,7 @@ export default function JourneyTaskBoard() {
     <div
       style={{
         padding: "22px clamp(12px, 2.2vw, 30px)",
-        fontFamily:
-          'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial',
+        fontFamily: T.fontFamily,
         color: T.text,
         background: T.bg,
         minHeight: "100dvh",
@@ -1932,32 +2129,6 @@ export default function JourneyTaskBoard() {
         position: "relative",
       }}
     >
-      <div
-        aria-hidden="true"
-        style={{
-          position: "fixed",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          pointerEvents: "none",
-          zIndex: 0,
-          opacity: 0.08,
-        }}
-      >
-        <div
-          style={{
-            fontSize: "min(78vw, 78vh)",
-            fontWeight: 900,
-            letterSpacing: "0.08em",
-            color: T.muted,
-            transform: "translateY(4vh)",
-            userSelect: "none",
-          }}
-        >
-          MT
-        </div>
-      </div>
       <div
         style={{
           width: "100%",
@@ -1969,52 +2140,50 @@ export default function JourneyTaskBoard() {
           zIndex: 1,
         }}
       >
+        {/* Navigation */}
         <div
           style={{
             display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            padding: 4,
-            borderRadius: 12,
-            border: T.border,
-            background: T.panel,
+            alignItems: "center",
+            gap: 0,
             alignSelf: "flex-start",
-            backdropFilter: T.blur,
-            WebkitBackdropFilter: T.blur,
+            borderBottom: T.border,
           }}
         >
           {([
-            { key: "board", label: t("board"), icon: "Board" },
-            { key: "summary", label: t("summary"), icon: "Summary" },
-            { key: "calendar", label: t("calendar"), icon: "Calendar" },
-            { key: "codes", label: t("codes"), icon: "Code" },
-            { key: "settings", label: t("settings"), icon: "Settings" },
+            { key: "board", label: t("board") },
+            { key: "summary", label: t("summary") },
+            { key: "calendar", label: t("calendar") },
+            { key: "journal", label: "📓 " + t("journal") },
+            { key: "codes", label: t("codes") },
+            { key: "settings", label: t("settings") },
           ] as const).map((tab) => {
-            const IconComponent = Icons[tab.icon as keyof typeof Icons];
+            const isActive = activeView === tab.key;
             return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveView(tab.key)}
-              style={{
-                border: T.border,
-                background: activeView === tab.key ? T.card : "transparent",
-                color: T.text,
-                borderRadius: 10,
-                padding: "7px 12px",
-                cursor: "pointer",
-                fontWeight: 700,
-                fontSize: 12,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                transition: "all 150ms ease-out",
-                transform: activeView === tab.key ? "translateY(-2px)" : "none",
-              }}
-              title={tab.label}
-            >
-              <IconComponent />
-              <span style={{ display: "none" }} className="tab-label">{tab.label}</span>
-            </button>
+              <button
+                key={tab.key}
+                onClick={() => setActiveView(tab.key)}
+                style={{
+                  border: "none",
+                  borderBottom: isActive
+                    ? `2px solid ${T.accent}`
+                    : "2px solid transparent",
+                  background: "transparent",
+                  color: isActive ? T.accent : T.muted,
+                  borderRadius: 0,
+                  padding: "10px 18px",
+                  marginBottom: "-1px",
+                  cursor: "pointer",
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: 12,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  transition: "all 160ms ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {tab.label}
+              </button>
             );
           })}
         </div>
@@ -2023,46 +2192,32 @@ export default function JourneyTaskBoard() {
         <div
           style={{
             background: T.panel,
-            borderRadius: 18,
-            padding: "20px 22px",
-            boxShadow: "0 12px 28px rgba(0,0,0,0.28)",
+            borderRadius: T.radius,
+            padding: "22px 24px",
+            boxShadow: T.shadow,
             border: T.border,
             display: "flex",
             flexDirection: "column",
             alignItems: "stretch",
-            gap: 18,
+            gap: 16,
             color: T.text,
             position: "relative",
             backdropFilter: T.blur,
             WebkitBackdropFilter: T.blur,
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              color: T.text,
-              opacity: 0.85,
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          >
-            <ProgressRing value={globalProgress} trackColor={T.muted} />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              flexWrap: "wrap",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+
+          {/* Top row: title + progress ring + stats */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+            position: "relative",
+            zIndex: 1,
+          }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px", minWidth: 0, overflow: "hidden" }}>
               {editingHeader ? (
                 <input
                   type="text"
@@ -2070,106 +2225,119 @@ export default function JourneyTaskBoard() {
                   onChange={(e) => setHeaderTitle(e.target.value)}
                   onBlur={() => saveHeaderTitle(headerTitle)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      saveHeaderTitle(headerTitle);
-                    }
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      setEditingHeader(false);
-                    }
+                    if (e.key === "Enter") { e.preventDefault(); saveHeaderTitle(headerTitle); }
+                    if (e.key === "Escape") { e.preventDefault(); setEditingHeader(false); }
                   }}
                   autoFocus
                   style={{
-                    fontSize: 24,
+                    fontSize: 26,
                     fontWeight: 900,
-                    border: `1px solid ${T.border}`,
+                    border: `1px solid ${T.accent}44`,
                     background: T.column,
                     color: T.text,
-                    padding: "4px 8px",
-                    borderRadius: 6,
+                    padding: "4px 10px",
+                    borderRadius: 8,
                     fontFamily: "inherit",
+                    width: "100%",
+                    outline: "none",
                   }}
                 />
               ) : (
                 <span
                   onClick={() => setEditingHeader(true)}
                   style={{
-                    fontSize: 24,
-                    fontWeight: 900,
+                    fontSize: 22,
+                    fontWeight: 800,
                     cursor: "text",
-                    display: "inline-block",
+                    display: "block",
+                    color: T.text,
+                    letterSpacing: "-0.2px",
+                    lineHeight: 1.2,
+                    wordBreak: "break-word",
                   }}
                   title={t("clickToRename")}
                 >
                   {displayHeaderTitle}
                 </span>
               )}
-              <div style={{ fontSize: 13, opacity: 0.7, color: T.muted }}>
+              <div style={{ fontSize: 12, opacity: 0.55, color: T.muted, letterSpacing: "0.1px" }}>
                 {t("subtitle")}
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <div
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 12,
-                  background: T.panel,
-                  border: T.border,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  backdropFilter: T.blur,
-                  WebkitBackdropFilter: T.blur,
-                }}
-              >
-                <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>
-                  {scoreStats.grandTotal}
-                </div>
-                <div style={{ fontSize: 12, opacity: 0.8 }}>{t("points")}</div>
+
+            {/* Progress ring + stats cluster */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, flexWrap: "wrap" }}>
+              <div style={{ opacity: 0.9 }}>
+                <ProgressRing value={globalProgress} trackColor={T.muted} accentColor={T.accent} />
               </div>
-              <div
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 12,
-                  background: T.panel,
-                  border: T.border,
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{
+                  padding: "8px 14px",
+                  borderRadius: T.radius,
+                  background: T.accentLight,
+                  border: `1px solid ${T.accent}40`,
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  backdropFilter: T.blur,
-                  WebkitBackdropFilter: T.blur,
-                }}
-              >
-                <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>
-                  {streakDays}
+                }}>
+                  <div style={{
+                    fontSize: 22,
+                    fontWeight: 700,
+                    color: T.accent,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontVariantNumeric: "tabular-nums",
+                  }}>
+                    {scoreStats.grandTotal}
+                  </div>
+                  <div style={{ fontSize: 10, opacity: 0.55, fontWeight: 500, letterSpacing: "0.04em" }}>{t("points")}</div>
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.8 }}>{t("dayStreak")}</div>
+                <div style={{
+                  padding: "8px 14px",
+                  borderRadius: T.radius,
+                  background: T.warning,
+                  border: T.warningBorder,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}>
+                  <div style={{
+                    fontSize: 22,
+                    fontWeight: 700,
+                    color: T.muted,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontVariantNumeric: "tabular-nums",
+                  }}>
+                    {streakDays}
+                  </div>
+                  <div style={{ fontSize: 10, opacity: 0.55, fontWeight: 500, letterSpacing: "0.04em" }}>{t("dayStreak")}</div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
+          {/* Bottom row: actions */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            position: "relative",
+            zIndex: 1,
+          }}>
             <button
               onClick={() => setMenuOpen(true)}
               style={{
-                padding: "9px 12px",
-                borderRadius: 12,
+                padding: "8px 12px",
+                borderRadius: T.radius,
                 border: T.border,
-                background: T.panel,
+                background: "transparent",
                 cursor: "pointer",
-                color: T.text,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
+                color: T.muted,
+                fontWeight: 700,
+                fontSize: 15,
+                lineHeight: 1,
+                transition: "all 150ms ease",
+                boxShadow: T.buttonShadow === "none" ? undefined : T.buttonShadow,
               }}
               aria-label={t("openMenu")}
             >
@@ -2178,13 +2346,18 @@ export default function JourneyTaskBoard() {
             <button
               onClick={openCreate}
               style={{
-                padding: "9px 12px",
-                borderRadius: 12,
-                border: T.border,
-                background: T.card,
-                color: T.text,
+                padding: "8px 16px",
+                borderRadius: T.radius,
+                border: `1px solid ${T.accent}`,
+                background: "transparent",
+                color: T.accent,
                 fontWeight: 700,
+                fontSize: 12,
                 cursor: "pointer",
+                transition: "all 150ms ease",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                boxShadow: T.buttonShadow === "none" ? undefined : T.buttonShadow,
               }}
             >
               {t("addTask")}
@@ -2192,14 +2365,18 @@ export default function JourneyTaskBoard() {
             <button
               onClick={saveDayCompletion}
               style={{
-                padding: "9px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(234,179,8,0.32)",
-                background:
-                  "linear-gradient(180deg, rgba(250,204,21,0.22) 0%, rgba(234,179,8,0.14) 100%)",
-                color: T.text,
-                fontWeight: 800,
+                padding: "8px 16px",
+                borderRadius: T.radius,
+                border: T.warningBorder,
+                background: "transparent",
+                color: T.muted,
+                fontWeight: 700,
+                fontSize: 12,
                 cursor: "pointer",
+                transition: "all 150ms ease",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                boxShadow: T.buttonShadow === "none" ? undefined : T.buttonShadow,
               }}
             >
               {t("saveDay")}
@@ -2209,22 +2386,32 @@ export default function JourneyTaskBoard() {
               value={themeName}
               onChange={(e) => setThemeName(e.target.value as ThemeName)}
               style={{
-                padding: "9px 10px",
-                borderRadius: 12,
+                padding: "8px 10px",
+                borderRadius: T.radius,
                 border: T.border,
-                background: T.panel,
+                background: T.column,
                 color: T.text,
                 cursor: "pointer",
-                backdropFilter: T.blur,
-                WebkitBackdropFilter: T.blur,
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: T.fontFamily,
+                boxShadow: T.buttonShadow === "none" ? undefined : T.buttonShadow,
               }}
               aria-label={t("theme")}
             >
-              <option value="Dark Glass">Dark Glass</option>
-              <option value="Dark Navy">Dark Matte</option>
-              <option value="Light">Light</option>
+              <optgroup label="Style">
+                <option value="Minimalisme">Minimalisme</option>
+                <option value="Brutalisme">Brutalisme</option>
+                <option value="Constructivisme">Constructivisme</option>
+                <option value="Style Suisse">Style Suisse</option>
+                <option value="Éditorial">Éditorial</option>
+                <option value="Dessiné à la main">Dessiné à la main</option>
+                <option value="Rétro">Rétro</option>
+                <option value="Plat">Plat</option>
+                <option value="Bento">Bento</option>
+                <option value="Obsidian">Obsidian</option>
+              </optgroup>
             </select>
-
           </div>
         </div>
 
@@ -2246,9 +2433,7 @@ export default function JourneyTaskBoard() {
                 background: T.panel,
                 borderRight: T.border,
                 color: T.text,
-                boxShadow: isLight
-                  ? "0 18px 40px rgba(0,0,0,0.18)"
-                  : "0 22px 48px rgba(0,0,0,0.45)",
+                boxShadow: T.shadow,
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
@@ -2408,15 +2593,23 @@ export default function JourneyTaskBoard() {
                         background: T.column,
                         backdropFilter: T.blur,
                         WebkitBackdropFilter: T.blur,
-                        borderRadius: 18,
-                        padding: 12,
+                        borderRadius: T.radius,
+                        padding: 0,
                         border: T.border,
-                        boxShadow: "0 8px 22px rgba(0,0,0,0.12)",
+                        boxShadow: T.shadow,
                         display: "flex",
                         flexDirection: "column",
                         minHeight: "clamp(420px, 68dvh, 760px)",
+                        overflow: "hidden",
                       }}
                     >
+                      {/* Accent top bar */}
+                      <div style={{
+                        height: themeName === "Brutalisme" || themeName === "Constructivisme" || themeName === "Style Suisse" ? 3 : 2,
+                        background: T.accent,
+                        opacity: 0.85,
+                      }} />
+                      <div style={{ padding: 14, display: "flex", flexDirection: "column", flex: 1 }}>
                   <div
                     style={{
                       display: "flex",
@@ -2459,13 +2652,14 @@ export default function JourneyTaskBoard() {
                         <span
                           onClick={() => startEditSectionTitle(s)}
                           style={{
-                            fontSize: 16,
-                            fontWeight: 900,
+                            fontSize: 13,
+                            fontWeight: 600,
                             color: T.text,
-                            borderRadius: 6,
+                            borderRadius: 0,
                             padding: 0,
                             cursor: "text",
                             display: "inline-block",
+                            letterSpacing: "0.01em",
                           }}
                           title={t("clickToRename")}
                         >
@@ -2474,35 +2668,42 @@ export default function JourneyTaskBoard() {
                       )}
                       <div
                         style={{
-                          fontSize: 13,
-                          opacity: 0.85,
+                          fontSize: 11,
+                          opacity: 0.5,
                           color: T.muted,
+                          fontFamily: "'JetBrains Mono', monospace",
+                          letterSpacing: "0.02em",
                         }}
                       >
-                        {st.done}/{st.total} {t("tasksDone")} • {st.pct}%
+                        {st.done}/{st.total}
                       </div>
                     </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <button
                           onClick={() => resetSectionToIncomplete(s)}
                           style={{
-                            border: T.border,
-                          background: T.panel,
-                          borderRadius: 10,
-                          padding: "5px 8px",
-                          cursor: "pointer",
-                          fontWeight: 700,
-                          color: T.text,
-                          fontSize: 12,
-                        }}
-                      >
-                        {t("uncheckAll")}
-                      </button>
+                            border: `1px solid ${T.accent}33`,
+                            background: "transparent",
+                            borderRadius: T.radius,
+                            padding: "3px 8px",
+                            cursor: "pointer",
+                            fontWeight: 600,
+                            color: T.muted,
+                            fontSize: 10,
+                            letterSpacing: "0.04em",
+                            textTransform: "uppercase",
+                            transition: "all 150ms ease",
+                            boxShadow: T.buttonShadow === "none" ? undefined : T.buttonShadow,
+                          }}
+                        >
+                          {t("uncheckAll")}
+                        </button>
                       <div
                         style={{
-                          fontSize: 18,
-                          fontWeight: 900,
-                          color: T.text,
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: st.pct === 100 ? (isLight ? "#286838" : "#5aaa6a") : T.accent,
+                          fontFamily: "'JetBrains Mono', monospace",
                         }}
                       >
                         {st.pct}%
@@ -2510,13 +2711,32 @@ export default function JourneyTaskBoard() {
                     </div>
                   </div>
 
+                    {/* Section progress bar */}
+                    <div style={{
+                      height: 4,
+                      borderRadius: 2,
+                      background: isLight ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.06)",
+                      marginBottom: 10,
+                      overflow: "hidden",
+                    }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${st.pct}%`,
+                        borderRadius: 2,
+                        background: st.pct === 100 ? (isLight ? "#286838" : "#5aaa6a") : T.accent,
+                        transition: "width 600ms cubic-bezier(0.4,0,0.2,1)",
+                      }} />
+                    </div>
+
                     {list.length === 0 ? (
                       <div
                         style={{
                           fontSize: 13,
-                          opacity: 0.85,
-                          padding: 10,
+                          padding: "24px 10px",
                           color: T.muted,
+                          opacity: 0.5,
+                          textAlign: "center",
+                          fontStyle: "italic",
                         }}
                       >
                         {t("noTasksFiltered")}
@@ -2535,6 +2755,7 @@ export default function JourneyTaskBoard() {
                         </div>
                       </SortableContext>
                     )}
+                    </div>
                     </div>
                   </SectionDropZone>
                 );
@@ -2566,10 +2787,10 @@ export default function JourneyTaskBoard() {
                 key={p.key}
                 style={{
                   background: T.panel,
-                  borderRadius: 18,
+                  borderRadius: T.radius,
                   padding: 16,
                   border: T.border,
-                  boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+                  boxShadow: T.shadow,
                   color: T.text,
                   minHeight: 260,
                   display: "flex",
@@ -2847,49 +3068,26 @@ export default function JourneyTaskBoard() {
               <div style={{ fontSize: 13, opacity: 0.7 }}>
                 {t("themeDescription")}
               </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  onClick={() => setThemeName("Dark Glass")}
-                  style={{
-                    border: T.border,
-                    background: themeName === "Dark Glass" ? T.card : "transparent",
-                    color: T.text,
-                    borderRadius: 10,
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  Dark Glass
-                </button>
-                <button
-                  onClick={() => setThemeName("Dark Navy")}
-                  style={{
-                    border: T.border,
-                    background: themeName === "Dark Navy" ? T.card : "transparent",
-                    color: T.text,
-                    borderRadius: 10,
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  Dark Matte
-                </button>
-                <button
-                  onClick={() => setThemeName("Light")}
-                  style={{
-                    border: T.border,
-                    background: themeName === "Light" ? T.card : "transparent",
-                    color: T.text,
-                    borderRadius: 10,
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  Light
-                </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {(Object.keys(THEMES) as ThemeName[]).map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => setThemeName(name)}
+                    style={{
+                      border: themeName === name ? `2px solid ${T.accent}` : T.border,
+                      background: themeName === name ? T.accentLight : "transparent",
+                      color: T.text,
+                      borderRadius: T.radius,
+                      padding: "7px 12px",
+                      cursor: "pointer",
+                      fontWeight: themeName === name ? 700 : 500,
+                      fontSize: 12,
+                      fontFamily: T.fontFamily,
+                    }}
+                  >
+                    {name}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -2942,192 +3140,706 @@ export default function JourneyTaskBoard() {
               </button>
             </div>
           </div>
-        ) : (
-          <div
-            style={{
-              background: T.panel,
-              borderRadius: 20,
-              padding: 18,
-              border: T.border,
-              boxShadow: "0 14px 30px rgba(0,0,0,0.28)",
-              color: T.text,
-              backdropFilter: T.blur,
-              WebkitBackdropFilter: T.blur,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 10,
+        ) : activeView === "journal" ? (
+          /* ── Journal view ────────────────────────────────────────── */
+          (() => {
+            const todayKey = formatDateKey(new Date());
+            const [jy, jm, jd] = journalDate.split("-").map(Number);
+            const journalDateObj = new Date(jy, jm - 1, jd);
+            const isToday = journalDate === todayKey;
+            const displayDate = journalDateObj.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+            const filledEntries = Object.values(journalEntries).filter((v) => v.trim()).length;
+
+            // All entry dates sorted desc for the sidebar
+            const entryDates = Object.entries(journalEntries)
+              .filter(([, v]) => v.trim())
+              .sort(([a], [b]) => b.localeCompare(a));
+
+            return (
+              <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+
+                {/* ── Sidebar: past entries ───────────────── */}
+                <div style={{
+                  width: 200,
+                  flexShrink: 0,
+                  background: T.panel,
+                  borderRadius: T.radius,
+                  border: T.border,
+                  boxShadow: T.shadow,
+                  overflow: "hidden",
+                }}>
+                  <div style={{ padding: "10px 14px", borderBottom: T.border, fontSize: 11, fontWeight: 700, opacity: 0.5, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                    {filledEntries} entrée{filledEntries !== 1 ? "s" : ""}
+                  </div>
+                  <div style={{ maxHeight: 520, overflowY: "auto" }}>
+                    {/* Today shortcut if no entry yet */}
+                    {!journalEntries[todayKey]?.trim() && (
+                      <button
+                        onClick={() => setJournalDate(todayKey)}
+                        style={{
+                          width: "100%", textAlign: "left", padding: "9px 14px",
+                          border: "none", background: journalDate === todayKey ? T.accentLight : "transparent",
+                          color: journalDate === todayKey ? T.accent : T.muted,
+                          cursor: "pointer", fontSize: 12, fontWeight: 600,
+                          borderLeft: journalDate === todayKey ? `3px solid ${T.accent}` : "3px solid transparent",
+                        }}
+                      >✏️ Aujourd'hui</button>
+                    )}
+                    {entryDates.map(([dk, text]) => {
+                      const [ey, em, ed] = dk.split("-").map(Number);
+                      const dateLabel = new Date(ey, em - 1, ed).toLocaleDateString(locale, { day: "numeric", month: "short" });
+                      const preview = text.trim().slice(0, 40).replace(/\n/g, " ");
+                      const isActive = journalDate === dk;
+                      return (
+                        <button
+                          key={dk}
+                          onClick={() => setJournalDate(dk)}
+                          style={{
+                            width: "100%", textAlign: "left", padding: "9px 14px",
+                            border: "none", background: isActive ? T.accentLight : "transparent",
+                            color: T.text, cursor: "pointer",
+                            borderLeft: isActive ? `3px solid ${T.accent}` : "3px solid transparent",
+                            borderBottom: T.border,
+                          }}
+                        >
+                          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 2, color: isActive ? T.accent : T.text }}>
+                            {dk === todayKey ? "Aujourd'hui" : dateLabel}
+                          </div>
+                          <div style={{ fontSize: 11, opacity: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {preview || "…"}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── Main writing area ───────────────────── */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
+                  {/* Header */}
+                  <div style={{
+                    background: T.panel,
+                    borderRadius: T.radius,
+                    border: T.border,
+                    boxShadow: T.shadow,
+                    padding: "14px 20px",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    background: T.card,
+                    gap: 12,
+                    marginBottom: 12,
+                  }}>
+                    <button
+                      onClick={() => { const d = new Date(jy, jm - 1, jd - 1); setJournalDate(formatDateKey(d)); }}
+                      style={{ border: T.border, background: "transparent", borderRadius: T.radius, padding: "5px 10px", cursor: "pointer", color: T.muted, fontSize: 13 }}
+                    >←</button>
+                    <div style={{ flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.3px" }}>
+                        {isToday ? "📝 Aujourd'hui" : "📅 " + displayDate}
+                      </div>
+                      {!isToday && <div style={{ fontSize: 11, opacity: 0.45, marginTop: 2 }}>{displayDate}</div>}
+                    </div>
+                    <button
+                      onClick={() => { const d = new Date(jy, jm - 1, jd + 1); setJournalDate(formatDateKey(d)); }}
+                      disabled={journalDate >= todayKey}
+                      style={{ border: T.border, background: "transparent", borderRadius: T.radius, padding: "5px 10px", cursor: journalDate >= todayKey ? "not-allowed" : "pointer", color: T.muted, fontSize: 13, opacity: journalDate >= todayKey ? 0.3 : 1 }}
+                    >→</button>
+                    {!isToday && (
+                      <button
+                        onClick={() => setJournalDate(todayKey)}
+                        style={{ border: `1px solid ${T.accent}`, background: "transparent", borderRadius: T.radius, padding: "5px 12px", cursor: "pointer", color: T.accent, fontSize: 12, fontWeight: 700 }}
+                      >Aujourd'hui</button>
+                    )}
+                  </div>
+
+                  {/* Writing area */}
+                  <div style={{
+                    background: T.panel,
+                    borderRadius: T.radius,
                     border: T.border,
-                    fontWeight: 900,
-                  }}
-                >
-                  📅
-                </div>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 900 }}>{t("calendar")}</div>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>{t("calendarSubtitle")}</div>
+                    boxShadow: T.shadow,
+                    padding: "20px 24px",
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                  }}>
+                    <textarea
+                      key={journalDate}
+                      defaultValue={journalEntries[journalDate] ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setJournalEntries((prev) => {
+                          if (!val.trim()) { const n = { ...prev }; delete n[journalDate]; return n; }
+                          return { ...prev, [journalDate]: val };
+                        });
+                      }}
+                      placeholder={isToday
+                        ? "Raconte ta journée… Qu'est-ce que tu as fait ? Comment tu te sens ? Ce que tu as appris, accompli, ou raté."
+                        : "Rien d'écrit pour ce jour. Tu peux écrire rétrospectivement."}
+                      style={{
+                        flex: 1,
+                        minHeight: 400,
+                        resize: "none",
+                        background: "transparent",
+                        border: "none",
+                        outline: "none",
+                        color: T.text,
+                        fontSize: 15,
+                        lineHeight: 1.8,
+                        fontFamily: T.fontFamily,
+                        padding: 0,
+                        width: "100%",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    {/* Footer: word count + tracker statuses for that day */}
+                    <div style={{ marginTop: 16, paddingTop: 12, borderTop: T.border, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, opacity: 0.35, fontWeight: 500 }}>
+                        {(journalEntries[journalDate] ?? "").trim().split(/\s+/).filter(Boolean).length} mots
+                      </span>
+                      {/* Tracker status chips for that day */}
+                      {habitTrackers.map((tracker) => {
+                        const color = trackerDayColors[tracker.id]?.[journalDate];
+                        const note = trackerDayNotes[tracker.id]?.[journalDate];
+                        if (!color && !note) return null;
+                        return (
+                          <span key={tracker.id} style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            background: color ? color + "22" : T.accentLight,
+                            border: `1px solid ${color ?? T.accent}44`,
+                            borderRadius: 20,
+                            padding: "2px 9px",
+                            fontSize: 11, fontWeight: 600,
+                            color: T.text,
+                          }}>
+                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: color ?? tracker.accentColor, display: "inline-block" }} />
+                            {tracker.name}
+                            {note && <span style={{ opacity: 0.55 }}>· {note.slice(0, 20)}{note.length > 20 ? "…" : ""}</span>}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            );
+          })()
+        ) : (
+          /* ── Multi-tracker calendar view ───────────────────────── */
+          <div style={{ color: T.text }}>
+
+            {/* ── Global fixed popup: color picker + note ─────────── */}
+            {coloringCell && (() => {
+              const activeTracker = habitTrackers.find((t) => t.id === coloringCell.trackerId);
+              const trackerColors = trackerDayColors[coloringCell.trackerId] ?? {};
+              const cellColor = trackerColors[coloringCell.dateKey] ?? null;
+              const currentNote = trackerDayNotes[coloringCell.trackerId]?.[coloringCell.dateKey] ?? "";
+              const COLOR_PRESETS: Array<{ color: string | null; label: string; title: string }> = [
+                { color: "#2d7a40", label: "✓", title: "Réussi" },
+                { color: "#c0392b", label: "✗", title: "Raté" },
+                { color: "#d68910", label: "~", title: "Partiel" },
+                { color: "#707080", label: "—", title: "Neutre" },
+                { color: null, label: "×", title: "Effacer" },
+              ];
+              // Clamp position to stay inside viewport
+              const popW = 220; const popH = 190;
+              const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+              const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+              const px = Math.min(Math.max(coloringCell.x - popW / 2, 8), vw - popW - 8);
+              const py = coloringCell.y + 12 + popH > vh ? coloringCell.y - popH - 8 : coloringCell.y + 12;
+              return (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 9998 }} onClick={() => setColoringCell(null)} />
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: "fixed",
+                      left: px,
+                      top: py,
+                      zIndex: 9999,
+                      background: T.panel,
+                      border: T.border,
+                      borderRadius: T.radius,
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.28)",
+                      padding: "10px 12px",
+                      width: popW,
+                    }}
+                  >
+                    {/* Header */}
+                    <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.5, marginBottom: 8, letterSpacing: "0.04em" }}>
+                      {activeTracker?.name} — {coloringCell.dateKey.slice(8)} {calendarData.monthLabel.split(" ")[0]}
+                    </div>
+                    {/* Color presets row */}
+                    <div style={{ display: "flex", gap: 5, marginBottom: 8, alignItems: "center" }}>
+                      {COLOR_PRESETS.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          title={preset.title}
+                          onClick={() => setTrackerDayColor(coloringCell.trackerId, coloringCell.dateKey, preset.color)}
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: Math.max(T.radius - 2, 3),
+                            border: cellColor === preset.color
+                              ? `2px solid ${T.accent}`
+                              : preset.color === null ? T.border : "2px solid transparent",
+                            background: preset.color ?? T.card,
+                            cursor: "pointer",
+                            color: preset.color ? "rgba(255,255,255,0.95)" : T.text,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >{preset.label}</button>
+                      ))}
+                      {/* Custom color */}
+                      <label
+                        title="Couleur libre"
+                        style={{
+                          width: 30, height: 30,
+                          borderRadius: Math.max(T.radius - 2, 3),
+                          border: T.border,
+                          background: (cellColor && !COLOR_PRESETS.some(p => p.color === cellColor)) ? cellColor : T.card,
+                          cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 15, color: T.muted, position: "relative",
+                        }}
+                      >
+                        🎨
+                        <input type="color" defaultValue={cellColor ?? "#3b7a50"}
+                          onChange={(e) => setTrackerDayColor(coloringCell.trackerId, coloringCell.dateKey, e.target.value)}
+                          style={{ opacity: 0, position: "absolute", width: 0, height: 0 }} />
+                      </label>
+                    </div>
+                    {/* Note textarea */}
+                    <textarea
+                      value={currentNote}
+                      onChange={(e) => setTrackerDayNote(coloringCell.trackerId, coloringCell.dateKey, e.target.value)}
+                      placeholder="Note du jour…"
+                      rows={3}
+                      style={{
+                        width: "100%",
+                        resize: "none",
+                        background: T.card,
+                        border: T.border,
+                        borderRadius: Math.max(T.radius - 2, 3),
+                        color: T.text,
+                        padding: "7px 9px",
+                        fontSize: 12,
+                        fontFamily: T.fontFamily,
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    {/* Close button */}
+                    <button
+                      onClick={() => setColoringCell(null)}
+                      style={{ marginTop: 6, width: "100%", border: T.border, background: "transparent", color: T.muted, borderRadius: Math.max(T.radius - 2, 3), padding: "5px 0", cursor: "pointer", fontSize: 11, fontWeight: 600 }}
+                    >Fermer</button>
+                  </div>
+                </>
+              );
+            })()}
+
+            {/* Top bar: month nav + add tracker */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 10,
+              marginBottom: 20,
+            }}>
+              {/* Month navigation */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button
                   onClick={() => setCalendarOffset((v) => v - 1)}
-                  style={{
-                    border: T.border,
-                    background: T.panel,
-                    borderRadius: 10,
-                    padding: "6px 10px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    color: T.text,
-                  }}
-                >
-                  {t("prev")}
-                </button>
-                <button
-                  onClick={() => setCalendarOffset(0)}
-                  style={{
-                    border: T.border,
-                    background: T.panel,
-                    borderRadius: 10,
-                    padding: "6px 10px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    color: T.text,
-                  }}
-                >
-                  {t("today")}
-                </button>
+                  style={{ border: T.border, background: "transparent", borderRadius: T.radius, padding: "5px 10px", cursor: "pointer", color: T.muted, fontSize: 13 }}
+                >←</button>
+                <span style={{ fontWeight: 700, fontSize: 15, minWidth: 160, textAlign: "center" }}>
+                  {calendarData.monthLabel}
+                </span>
                 <button
                   onClick={() => setCalendarOffset((v) => v + 1)}
-                  style={{
-                    border: T.border,
-                    background: T.panel,
-                    borderRadius: 10,
-                    padding: "6px 10px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    color: T.text,
-                  }}
-                >
-                  {t("next")}
-                </button>
+                  style={{ border: T.border, background: "transparent", borderRadius: T.radius, padding: "5px 10px", cursor: "pointer", color: T.muted, fontSize: 13 }}
+                >→</button>
+                <button
+                  onClick={() => setCalendarOffset(0)}
+                  style={{ border: T.border, background: T.card, borderRadius: T.radius, padding: "5px 12px", cursor: "pointer", color: T.text, fontSize: 12, fontWeight: 600, boxShadow: T.buttonShadow === "none" ? undefined : T.buttonShadow }}
+                >{t("today")}</button>
               </div>
+
+              {/* Add tracker button */}
+              {!addingTracker && (
+                <button
+                  onClick={() => setAddingTracker(true)}
+                  style={{ border: `1px solid ${T.accent}`, background: "transparent", borderRadius: T.radius, padding: "6px 14px", cursor: "pointer", color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: "0.03em", boxShadow: T.buttonShadow === "none" ? undefined : T.buttonShadow }}
+                >+ Nouveau traceur</button>
+              )}
             </div>
 
-            <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
-              <select
-                value={`${calendarData.year}-${calendarData.month}`}
-                onChange={(e) => {
-                  const [y, m] = e.target.value.split("-").map((v) => Number(v));
-                  const now = new Date();
-                  const diff = (y - now.getFullYear()) * 12 + (m - now.getMonth());
-                  setCalendarOffset(diff);
-                }}
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: 10,
-                  border: T.border,
-                  background: T.panel,
-                  color: T.text,
-                }}
-              >
-                {Array.from({ length: 36 }).map((_, idx) => {
-                  const base = new Date();
-                  const d = new Date(base.getFullYear(), base.getMonth() - 12 + idx, 1);
-                  const value = `${d.getFullYear()}-${d.getMonth()}`;
-                  return (
-                    <option key={value} value={value}>
-                      {d.toLocaleString(locale, { month: "long", year: "numeric" })}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, 1fr)",
-                gap: 8,
-                padding: 10,
-                borderRadius: 14,
-                background: T.panel,
-                border: T.border,
-                backdropFilter: T.blur,
-                WebkitBackdropFilter: T.blur,
+            {/* Tracker cards grid — wrapped in DndContext for drag-to-reorder */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => {
+                const { active, over } = event;
+                if (over && active.id !== over.id) {
+                  reorderTrackers(String(active.id), String(over.id));
+                }
               }}
             >
-              {([t("mon"), t("tue"), t("wed"), t("thu"), t("fri"), t("sat"), t("sun")] as const).map((d) => (
-                <div
-                  key={d}
-                  style={{
-                    fontSize: 11,
-                    opacity: 0.7,
-                    textAlign: "center",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {d}
+              <SortableContext items={habitTrackers.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                  gap: 16,
+                  alignItems: "start",
+                }}>
+                  {habitTrackers.map((tracker) => {
+                    const trackerColors = trackerDayColors[tracker.id] ?? {};
+                    const trackerNotes = trackerDayNotes[tracker.id] ?? {};
+                    const daysColored = Object.keys(trackerColors).length;
+                    const DOW_LABELS = [t("mon"), t("tue"), t("wed"), t("thu"), t("fri"), t("sat"), t("sun")];
+                    const isSelectMode = multiSelectTracker === tracker.id;
+                    const selection = selectedDays[tracker.id] ?? [];
+                    const MULTI_PRESETS: Array<{ color: string | null; label: string; bg: string }> = [
+                      { color: "#2d7a40", label: "✓", bg: "#2d7a40" },
+                      { color: "#c0392b", label: "✗", bg: "#c0392b" },
+                      { color: "#d68910", label: "~", bg: "#d68910" },
+                      { color: "#707080", label: "—", bg: "#707080" },
+                      { color: null,      label: "×", bg: "transparent" },
+                    ];
+
+                    return (
+                      <SortableTrackerWrapper key={tracker.id} id={tracker.id}>
+                        {(dragHandleProps, isDragging) => (
+                          <div
+                            style={{
+                              background: T.panel,
+                              borderRadius: T.radius,
+                              border: isDragging ? `2px solid ${T.accent}` : isSelectMode ? `2px solid ${tracker.accentColor}` : T.border,
+                              padding: 16,
+                              boxShadow: isDragging ? "0 12px 32px rgba(0,0,0,0.3)" : T.shadow,
+                              position: "relative",
+                            }}
+                          >
+                            {/* Tracker header */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                              {/* Drag handle — hidden in select mode */}
+                              {!isSelectMode && (
+                                <span
+                                  {...dragHandleProps}
+                                  style={{ cursor: "grab", opacity: 0.3, fontSize: 14, lineHeight: 1, flexShrink: 0, userSelect: "none", touchAction: "none" }}
+                                  title="Glisser pour réorganiser"
+                                >⠿</span>
+                              )}
+
+                              {/* Color dot */}
+                              <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: tracker.accentColor, flexShrink: 0 }} />
+
+                              {/* Name (editable) */}
+                              {editingTrackerId === tracker.id ? (
+                                <input autoFocus value={editingTrackerName}
+                                  onChange={(e) => setEditingTrackerName(e.target.value)}
+                                  onBlur={() => saveTrackerName(tracker.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); saveTrackerName(tracker.id); }
+                                    if (e.key === "Escape") { e.preventDefault(); setEditingTrackerId(null); }
+                                  }}
+                                  style={{ flex: 1, fontSize: 13, fontWeight: 700, background: T.card, border: T.border, borderRadius: T.radius, color: T.text, padding: "2px 8px", fontFamily: T.fontFamily }}
+                                />
+                              ) : (
+                                <span style={{ flex: 1, fontSize: 13, fontWeight: 700, cursor: isSelectMode ? "default" : "text" }}
+                                  onClick={() => { if (!isSelectMode) { setEditingTrackerId(tracker.id); setEditingTrackerName(tracker.name); } }}
+                                  title={isSelectMode ? "" : "Cliquer pour renommer"}
+                                >{tracker.name}</span>
+                              )}
+
+                              {/* Select count badge */}
+                              {isSelectMode && selection.length > 0 && (
+                                <span style={{ fontSize: 11, fontWeight: 700, background: tracker.accentColor, color: "#fff", borderRadius: 10, padding: "1px 7px" }}>
+                                  {selection.length}
+                                </span>
+                              )}
+
+                              {/* Stats — hidden in select mode */}
+                              {!isSelectMode && <span style={{ fontSize: 10, opacity: 0.4, fontWeight: 500 }}>{daysColored}j</span>}
+
+                              {/* Multi-select toggle */}
+                              <button
+                                onClick={() => {
+                                  if (isSelectMode) exitMultiSelect();
+                                  else { setMultiSelectTracker(tracker.id); setSelectedDays((p) => ({ ...p, [tracker.id]: [] })); setColoringCell(null); }
+                                }}
+                                style={{
+                                  border: isSelectMode ? `1px solid ${tracker.accentColor}` : T.border,
+                                  background: isSelectMode ? tracker.accentColor : "transparent",
+                                  color: isSelectMode ? "#fff" : T.muted,
+                                  borderRadius: Math.max(T.radius - 2, 3),
+                                  padding: "2px 7px",
+                                  cursor: "pointer",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  lineHeight: 1.4,
+                                  flexShrink: 0,
+                                }}
+                                title={isSelectMode ? "Quitter la sélection" : "Sélection multiple"}
+                              >{isSelectMode ? "✕ quitter" : "⊞"}</button>
+
+                              {/* Accent color picker — hidden in select mode */}
+                              {!isSelectMode && (
+                                <label style={{ cursor: "pointer", opacity: 0.35, fontSize: 12, position: "relative" }} title="Couleur du traceur">
+                                  ●
+                                  <input type="color" value={tracker.accentColor}
+                                    onChange={(e) => setHabitTrackers((prev) => prev.map((x) => x.id === tracker.id ? { ...x, accentColor: e.target.value } : x))}
+                                    style={{ opacity: 0, position: "absolute", width: 0, height: 0 }} />
+                                </label>
+                              )}
+
+                              {/* Delete — hidden in select mode */}
+                              {!isSelectMode && (
+                                <button onClick={() => deleteHabitTracker(tracker.id)}
+                                  style={{ border: "none", background: "transparent", cursor: "pointer", color: T.muted, fontSize: 13, padding: "0 2px", opacity: 0.35, lineHeight: 1 }}
+                                  title="Supprimer">✕</button>
+                              )}
+                            </div>
+
+                            {/* Day-of-week labels */}
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, marginBottom: 4 }}>
+                              {DOW_LABELS.map((d) => (
+                                <div key={d} style={{ fontSize: 9, opacity: 0.4, textAlign: "center", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                  {d.slice(0, 1)}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Day cells */}
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3 }}>
+                              {calendarData.cells.map((cell) => {
+                                const dateKey = cell.day
+                                  ? formatDateKey(new Date(calendarData.year, calendarData.month, cell.day))
+                                  : null;
+                                const cellColor = dateKey ? trackerColors[dateKey] : null;
+                                const hasNote = dateKey ? !!trackerNotes[dateKey] : false;
+                                const isPickerOpen = coloringCell?.trackerId === tracker.id && coloringCell?.dateKey === dateKey;
+                                const isChecked = isSelectMode && dateKey ? selection.includes(dateKey) : false;
+
+                                return (
+                                  <div
+                                    key={cell.key}
+                                    style={{
+                                      aspectRatio: "1",
+                                      borderRadius: Math.max(T.radius - 4, 2),
+                                      background: !cell.day ? "transparent" : cellColor ?? T.card,
+                                      border: cell.day
+                                        ? isChecked
+                                          ? `2px solid ${tracker.accentColor}`
+                                          : isPickerOpen
+                                            ? `2px solid ${T.accent}`
+                                            : T.border
+                                        : "none",
+                                      cursor: cell.day ? "pointer" : "default",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      color: cellColor ? "rgba(255,255,255,0.92)" : T.text,
+                                      position: "relative",
+                                      transition: "border 80ms, box-shadow 80ms",
+                                      boxShadow: isChecked ? `0 0 0 2px ${tracker.accentColor}44` : "none",
+                                      outline: "none",
+                                    }}
+                                    onClick={(e) => {
+                                      if (!cell.day || !dateKey) return;
+                                      if (isSelectMode) {
+                                        toggleDaySelection(tracker.id, dateKey);
+                                      } else {
+                                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                        setColoringCell(isPickerOpen ? null : {
+                                          trackerId: tracker.id,
+                                          dateKey,
+                                          x: rect.left + rect.width / 2,
+                                          y: rect.bottom + 6,
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    {/* Checkmark overlay in select mode */}
+                                    {isSelectMode && isChecked ? (
+                                      <span style={{ fontSize: 10, color: cellColor ? "rgba(255,255,255,0.95)" : tracker.accentColor, fontWeight: 900 }}>✓</span>
+                                    ) : (
+                                      cell.day ?? ""
+                                    )}
+                                    {/* Note dot */}
+                                    {!isSelectMode && hasNote && (
+                                      <span style={{ position: "absolute", bottom: 2, right: 2, width: 4, height: 4, borderRadius: "50%", background: cellColor ? "rgba(255,255,255,0.7)" : T.accent }} />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* ── Multi-select color toolbar ────────────────── */}
+                            {isSelectMode && (
+                              <div style={{
+                                marginTop: 10,
+                                padding: "8px 10px",
+                                borderRadius: Math.max(T.radius - 2, 3),
+                                background: T.card,
+                                border: T.border,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                flexWrap: "wrap",
+                              }}>
+                                <span style={{ fontSize: 10, opacity: 0.5, fontWeight: 700, marginRight: 2 }}>
+                                  {selection.length === 0 ? "Sélectionnez des jours" : `${selection.length} jour${selection.length > 1 ? "s" : ""} — appliquer :`}
+                                </span>
+                                {MULTI_PRESETS.map((p, i) => (
+                                  <button
+                                    key={i}
+                                    title={p.label}
+                                    disabled={selection.length === 0}
+                                    onClick={() => applyColorToSelection(tracker.id, p.color)}
+                                    style={{
+                                      width: 28, height: 28,
+                                      borderRadius: Math.max(T.radius - 3, 2),
+                                      border: p.color === null ? T.border : "none",
+                                      background: p.bg,
+                                      color: p.color ? "rgba(255,255,255,0.95)" : T.text,
+                                      cursor: selection.length === 0 ? "not-allowed" : "pointer",
+                                      fontSize: 13, fontWeight: 700,
+                                      opacity: selection.length === 0 ? 0.4 : 1,
+                                      display: "flex", alignItems: "center", justifyContent: "center",
+                                      transition: "opacity 120ms",
+                                    }}
+                                  >{p.label}</button>
+                                ))}
+                                {/* Custom color for multi */}
+                                <label
+                                  title="Couleur libre"
+                                  style={{
+                                    width: 28, height: 28,
+                                    borderRadius: Math.max(T.radius - 3, 2),
+                                    border: T.border,
+                                    background: T.card,
+                                    cursor: selection.length === 0 ? "not-allowed" : "pointer",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontSize: 14, color: T.muted, position: "relative",
+                                    opacity: selection.length === 0 ? 0.4 : 1,
+                                  }}
+                                >
+                                  🎨
+                                  <input type="color" defaultValue="#3b7a50"
+                                    disabled={selection.length === 0}
+                                    onChange={(e) => applyColorToSelection(tracker.id, e.target.value)}
+                                    style={{ opacity: 0, position: "absolute", width: 0, height: 0 }} />
+                                </label>
+                                {/* Select all button */}
+                                <button
+                                  onClick={() => {
+                                    const allDays = calendarData.cells
+                                      .filter((c) => c.day !== null)
+                                      .map((c) => formatDateKey(new Date(calendarData.year, calendarData.month, c.day!)));
+                                    const allSelected = allDays.every((dk) => selection.includes(dk));
+                                    setSelectedDays((p) => ({ ...p, [tracker.id]: allSelected ? [] : allDays }));
+                                  }}
+                                  style={{
+                                    marginLeft: "auto",
+                                    border: T.border, background: "transparent", color: T.muted,
+                                    borderRadius: Math.max(T.radius - 3, 2), padding: "3px 8px",
+                                    cursor: "pointer", fontSize: 10, fontWeight: 600,
+                                  }}
+                                >
+                                  {calendarData.cells.filter(c => c.day).every(c => {
+                                    const dk = formatDateKey(new Date(calendarData.year, calendarData.month, c.day!));
+                                    return selection.includes(dk);
+                                  }) ? "Tout désélect." : "Tout sélect."}
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Accent bar at bottom */}
+                            <div style={{ marginTop: 12, height: 2, borderRadius: 1, background: tracker.accentColor, opacity: 0.4 }} />
+                          </div>
+                        )}
+                      </SortableTrackerWrapper>
+                    );
+                  })}
+
+              {/* Add tracker form / button */}
+              {addingTracker ? (
+                <div style={{
+                  background: T.panel,
+                  borderRadius: T.radius,
+                  border: T.border,
+                  padding: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  boxShadow: T.shadow,
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.6 }}>Nouveau traceur</div>
+                  <input
+                    autoFocus
+                    value={newTrackerName}
+                    onChange={(e) => setNewTrackerName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addHabitTracker(); } if (e.key === "Escape") { e.preventDefault(); setAddingTracker(false); } }}
+                    placeholder="Nom du traceur (ex: Sport, Lecture…)"
+                    style={{ padding: "8px 12px", borderRadius: T.radius, border: T.border, background: T.card, color: T.text, fontSize: 14, fontFamily: T.fontFamily }}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <label style={{ fontSize: 12, opacity: 0.6, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                      <span>Couleur :</span>
+                      <input
+                        type="color"
+                        value={newTrackerColor}
+                        onChange={(e) => setNewTrackerColor(e.target.value)}
+                        style={{ width: 32, height: 26, borderRadius: 4, border: T.border, cursor: "pointer", padding: 1 }}
+                      />
+                    </label>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={addHabitTracker}
+                      style={{ flex: 1, border: `1px solid ${T.accent}`, background: "transparent", color: T.accent, borderRadius: T.radius, padding: "8px 0", cursor: "pointer", fontWeight: 700, fontSize: 13, boxShadow: T.buttonShadow === "none" ? undefined : T.buttonShadow }}
+                    >Créer</button>
+                    <button
+                      onClick={() => setAddingTracker(false)}
+                      style={{ border: T.border, background: "transparent", color: T.muted, borderRadius: T.radius, padding: "8px 14px", cursor: "pointer", fontSize: 13 }}
+                    >{t("cancel")}</button>
+                  </div>
                 </div>
-              ))}
-              {calendarData.cells.map((cell) => (
-                <div
-                  key={cell.key}
+              ) : (
+                <button
+                  onClick={() => setAddingTracker(true)}
                   style={{
-                    height: 42,
-                    borderRadius: 10,
+                    background: "transparent",
+                    border: `1px dashed ${T.accent}55`,
+                    borderRadius: T.radius,
+                    padding: "32px 16px",
+                    cursor: "pointer",
+                    color: T.muted,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    fontFamily: T.fontFamily,
+                    width: "100%",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: cell.day
-                      ? calendarData.isCompleted(cell.day)
-                        ? "linear-gradient(180deg, rgba(34,197,94,0.5) 0%, rgba(22,163,74,0.35) 100%)"
-                        : T.card
-                      : "transparent",
-                    border: cell.day ? T.border : "none",
-                    color: T.text,
-                    fontWeight: 700,
-                    fontSize: 12,
-                    position: "relative",
-                    cursor: cell.day ? "pointer" : "default",
-                  }}
-                  onClick={() => {
-                    if (cell.day) openCalendarDay(calendarData.year, calendarData.month, cell.day);
+                    gap: 8,
                   }}
                 >
-                  {cell.day ?? ""}
-                  {cell.day && (calendarData.eventsCountByDay.get(cell.day) ?? 0) > 0 ? (
-                    <span
-                      style={{
-                        position: "absolute",
-                        right: 6,
-                        top: 4,
-                        fontSize: 10,
-                        opacity: 0.75,
-                      }}
-                    >
-                      {calendarData.eventsCountByDay.get(cell.day)}
-                    </span>
-                  ) : null}
+                  <span style={{ fontSize: 18, opacity: 0.5 }}>+</span>
+                  Nouveau traceur
+                </button>
+              )}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
 
@@ -3284,6 +3996,95 @@ export default function JourneyTaskBoard() {
           theme={T}
           closeLabel={t("close")}
         >
+          {/* Day color picker */}
+          {calendarSelectedDate && (() => {
+            const selectedKey = formatDateKey(calendarSelectedDate);
+            const currentColor = dayColors[selectedKey];
+            const DAY_COLOR_PRESETS: Array<{ color: string; label: string } | null> = [
+              { color: "#2a6e38", label: "Green" },
+              { color: "#8a2424", label: "Red" },
+              { color: "#7a5c14", label: "Amber" },
+              { color: "#245080", label: "Blue" },
+              { color: "#582a80", label: "Purple" },
+              { color: "#7a3a18", label: "Orange" },
+              null,
+            ];
+            return (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, opacity: 0.55, marginBottom: 8, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>Day color</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {DAY_COLOR_PRESETS.map((preset, _idx) =>
+                    preset === null ? (
+                      <button
+                        key="clear"
+                        type="button"
+                        onClick={() => {
+                          setDayColors((prev) => {
+                            const next = { ...prev };
+                            delete next[selectedKey];
+                            return next;
+                          });
+                        }}
+                        style={{
+                          width: 28, height: 28,
+                          borderRadius: 4,
+                          border: T.border,
+                          background: T.card,
+                          cursor: "pointer",
+                          color: T.muted,
+                          fontSize: 12,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          opacity: currentColor ? 1 : 0.4,
+                        }}
+                        title="Clear color"
+                      >
+                        ✕
+                      </button>
+                    ) : (
+                      <button
+                        key={preset.color}
+                        type="button"
+                        onClick={() => setDayColors((prev) => ({ ...prev, [selectedKey]: preset.color }))}
+                        style={{
+                          width: 28, height: 28,
+                          borderRadius: 4,
+                          background: preset.color,
+                          border: currentColor === preset.color
+                            ? "2px solid rgba(255,255,255,0.8)"
+                            : "2px solid transparent",
+                          cursor: "pointer",
+                          boxSizing: "border-box",
+                        }}
+                        title={preset.label}
+                      />
+                    )
+                  )}
+                  {/* Native color input for custom color */}
+                  <label
+                    style={{
+                      width: 28, height: 28,
+                      borderRadius: 4,
+                      border: T.border,
+                      background: T.card,
+                      cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 14, overflow: "hidden",
+                    }}
+                    title="Custom color"
+                  >
+                    <span style={{ opacity: 0.6 }}>+</span>
+                    <input
+                      type="color"
+                      defaultValue={currentColor ?? "#444466"}
+                      onChange={(e) => setDayColors((prev) => ({ ...prev, [selectedKey]: e.target.value }))}
+                      style={{ opacity: 0, width: 0, height: 0, position: "absolute" }}
+                    />
+                  </label>
+                </div>
+              </div>
+            );
+          })()}
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
